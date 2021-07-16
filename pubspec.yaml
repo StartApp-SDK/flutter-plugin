@@ -1,7 +1,7 @@
-name: sdk
-description: A new flutter plugin project.
-version: 0.0.1
-homepage:
+name: startapp_sdk
+description: Start.io (StartApp) SDK for Flutter uses native platform views to show ads.
+version: 0.1.5
+homepage: https://github.com/StartApp-SDK/flutter-plugin
 
 environment:
   sdk: ">=2.12.0 <3.0.0"
@@ -28,9 +28,10 @@ flutter:
     platforms:
       android:
         package: com.startapp.flutter.sdk
-        pluginClass: SdkPlugin
-      ios:
-        pluginClass: SdkPlugin
+        pluginClass: StartAppSdkPlugin
+      # TODO iOS will be implemented later
+      # ios:
+      #   pluginClass: StartAppSdkPlugin
 
   # To add assets to your plugin package, add an assets section, like this:
   # assets:
