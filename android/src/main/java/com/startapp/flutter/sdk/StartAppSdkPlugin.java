@@ -87,11 +87,23 @@ public class StartAppSdkPlugin implements FlutterPlugin, MethodCallHandler {
     public void onAttachedToEngine(@NonNull FlutterPlugin.FlutterPluginBinding binding) {
         binding.getPlatformViewRegistry()
                 .registerViewFactory("com.startapp.flutter.Banner",
-                        new StartAppViewFactory<>(() -> new StartAppFlutterBanner(bannerAdKeeper)));
+                        new StartAppViewFactory<>(new StartAppViewFactory.FactoryMethod<StartAppView>() {
+                            @NonNull
+                            @Override
+                            public StartAppView newInstance() {
+                                return new StartAppFlutterBanner(bannerAdKeeper);
+                            }
+                        }));
 
         binding.getPlatformViewRegistry()
                 .registerViewFactory("com.startapp.flutter.Native",
-                        new StartAppViewFactory<>(() -> new StartAppFlutterNative(nativeAdKeeper)));
+                        new StartAppViewFactory<>(new StartAppViewFactory.FactoryMethod<StartAppView>() {
+                            @NonNull
+                            @Override
+                            public StartAppView newInstance() {
+                                return new StartAppFlutterNative(nativeAdKeeper);
+                            }
+                        }));
 
         if (channel == null) {
             channel = new MethodChannel(binding.getBinaryMessenger(), "com.startapp.flutter");
@@ -190,21 +202,21 @@ public class StartAppSdkPlugin implements FlutterPlugin, MethodCallHandler {
         }
     }
 
-    private void loadBannerAd(@NonNull Context context, @Nullable Map<String, Object> arguments, @NonNull StartAppMethodResultWrapper result) {
+    private void loadBannerAd(@NonNull Context context, @Nullable Map<String, Object> arguments, @NonNull final StartAppMethodResultWrapper result) {
         if (DEBUG) {
             Log.v(LOG_TAG, "loadBannerAd");
         }
 
-        float density = context.getResources().getDisplayMetrics().density;
+        final float density = context.getResources().getDisplayMetrics().density;
 
         AdPreferences adPreferences = new AdPreferences();
 
         fillAdPreferences(adPreferences, arguments);
 
-        Handler uiHandler = getUiHandler();
+        final Handler uiHandler = getUiHandler();
 
-        AtomicReference<BannerStandard> bannerRef = new AtomicReference<>();
-        AtomicReference<Point> sizeRef = new AtomicReference<>();
+        final AtomicReference<BannerStandard> bannerRef = new AtomicReference<>();
+        final AtomicReference<Point> sizeRef = new AtomicReference<>();
 
         BannerListener bannerListener = new BannerListener() {
             @Override
@@ -227,12 +239,17 @@ public class StartAppSdkPlugin implements FlutterPlugin, MethodCallHandler {
 
                 int id = bannerAdKeeper.add(banner);
 
-                Map<String, Object> data = new HashMap<>();
+                final Map<String, Object> data = new HashMap<>();
                 data.put("id", id);
                 data.put("width", magicFlutterDp(size.x, density));
                 data.put("height", magicFlutterDp(size.y, density));
 
-                uiHandler.post(() -> result.success(data));
+                uiHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        result.success(data);
+                    }
+                });
             }
 
             @Override
@@ -241,9 +258,14 @@ public class StartAppSdkPlugin implements FlutterPlugin, MethodCallHandler {
                     Log.v(LOG_TAG, "loadBannerAd: onFailedToReceiveAd");
                 }
 
-                BannerStandard banner = bannerRef.get();
+                final BannerStandard banner = bannerRef.get();
 
-                uiHandler.post(() -> result.error("failed_to_receive_ad", banner != null ? banner.getErrorMessage() : null));
+                uiHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        result.error("failed_to_receive_ad", banner != null ? banner.getErrorMessage() : null);
+                    }
+                });
             }
 
             @Override
@@ -304,10 +326,15 @@ public class StartAppSdkPlugin implements FlutterPlugin, MethodCallHandler {
         banner.setLayoutParams(new ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT));
         banner.loadAd(size.x, size.y);
 
-        uiHandler.postDelayed(() -> result.error("timeout", null), 3000);
+        uiHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                result.error("timeout", null);
+            }
+        }, 3000);
     }
 
-    private void loadInterstitialAd(@NonNull Context context, @Nullable Map<String, Object> arguments, @NonNull StartAppMethodResultWrapper result) {
+    private void loadInterstitialAd(@NonNull Context context, @Nullable Map<String, Object> arguments, @NonNull final StartAppMethodResultWrapper result) {
         if (DEBUG) {
             Log.v(LOG_TAG, "loadInterstitialAd");
         }
@@ -316,9 +343,9 @@ public class StartAppSdkPlugin implements FlutterPlugin, MethodCallHandler {
 
         fillAdPreferences(adPreferences, arguments);
 
-        Handler uiHandler = getUiHandler();
+        final Handler uiHandler = getUiHandler();
 
-        StartAppAd interstitialAd = new StartAppAd(context);
+        final StartAppAd interstitialAd = new StartAppAd(context);
 
         boolean loading = interstitialAd.load(adPreferences, new AdEventListener() {
             @Override
@@ -329,19 +356,29 @@ public class StartAppSdkPlugin implements FlutterPlugin, MethodCallHandler {
 
                 int id = interstitialAdKeeper.add(interstitialAd);
 
-                Map<String, Object> data = new HashMap<>();
+                final Map<String, Object> data = new HashMap<>();
                 data.put("id", id);
 
-                uiHandler.post(() -> result.success(data));
+                uiHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        result.success(data);
+                    }
+                });
             }
 
             @Override
-            public void onFailedToReceiveAd(@Nullable Ad ad) {
+            public void onFailedToReceiveAd(@Nullable final Ad ad) {
                 if (DEBUG) {
                     Log.v(LOG_TAG, "loadInterstitialAd: onFailedToReceiveAd");
                 }
 
-                uiHandler.post(() -> result.error("failed_to_receive_ad", ad != null ? ad.getErrorMessage() : null));
+                uiHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        result.error("failed_to_receive_ad", ad != null ? ad.getErrorMessage() : null);
+                    }
+                });
             }
         });
 
@@ -350,7 +387,12 @@ public class StartAppSdkPlugin implements FlutterPlugin, MethodCallHandler {
         }
 
         if (loading) {
-            uiHandler.postDelayed(() -> result.error("timeout", null), 3000);
+            uiHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    result.error("timeout", null);
+                }
+            }, 3000);
         } else {
             result.error("loading_error", interstitialAd.getErrorMessage());
         }
@@ -391,7 +433,7 @@ public class StartAppSdkPlugin implements FlutterPlugin, MethodCallHandler {
         result.success(shown);
     }
 
-    private void loadNativeAd(@NonNull Context context, @Nullable Map<String, Object> arguments, @NonNull StartAppMethodResultWrapper result) {
+    private void loadNativeAd(@NonNull Context context, @Nullable Map<String, Object> arguments, @NonNull final StartAppMethodResultWrapper result) {
         if (DEBUG) {
             Log.v(LOG_TAG, "loadNativeAd");
         }
@@ -402,9 +444,9 @@ public class StartAppSdkPlugin implements FlutterPlugin, MethodCallHandler {
 
         fillAdPreferences(adPreferences, arguments);
 
-        Handler uiHandler = getUiHandler();
+        final Handler uiHandler = getUiHandler();
 
-        StartAppNativeAd nativeAd = new StartAppNativeAd(context);
+        final StartAppNativeAd nativeAd = new StartAppNativeAd(context);
 
         AdEventListener adEventListener = new AdEventListener() {
             @Override
@@ -415,12 +457,17 @@ public class StartAppSdkPlugin implements FlutterPlugin, MethodCallHandler {
 
                 ArrayList<NativeAdDetails> nativeAds = nativeAd.getNativeAds();
                 if (nativeAds == null || nativeAds.size() < 1 || nativeAds.get(0) == null) {
-                    uiHandler.post(() -> result.error("no_fill", null));
+                    uiHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            result.error("no_fill", null);
+                        }
+                    });
                 } else {
                     NativeAdDetails details = nativeAds.get(0);
                     int id = nativeAdKeeper.add(details);
 
-                    Map<String, Object> data = new HashMap<>();
+                    final Map<String, Object> data = new HashMap<>();
                     data.put("id", id);
                     putIfNotNull(data, "title", details.getTitle());
                     putIfNotNull(data, "description", details.getDescription());
@@ -432,17 +479,27 @@ public class StartAppSdkPlugin implements FlutterPlugin, MethodCallHandler {
                     putIfNotNull(data, "imageUrl", details.getImageUrl());
                     putIfNotNull(data, "secondaryImageUrl", details.getSecondaryImageUrl());
 
-                    uiHandler.post(() -> result.success(data));
+                    uiHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            result.success(data);
+                        }
+                    });
                 }
             }
 
             @Override
-            public void onFailedToReceiveAd(@Nullable Ad ad) {
+            public void onFailedToReceiveAd(@Nullable final Ad ad) {
                 if (DEBUG) {
                     Log.v(LOG_TAG, "loadNativeAd: onFailedToReceiveAd");
                 }
 
-                uiHandler.post(() -> result.error("failed_to_receive_ad", ad != null ? ad.getErrorMessage() : null));
+                uiHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        result.error("failed_to_receive_ad", ad != null ? ad.getErrorMessage() : null);
+                    }
+                });
             }
         };
 
@@ -466,7 +523,12 @@ public class StartAppSdkPlugin implements FlutterPlugin, MethodCallHandler {
         }
 
         if (loading) {
-            uiHandler.postDelayed(() -> result.error("timeout", null), 3000);
+            uiHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    result.error("timeout", null);
+                }
+            }, 3000);
         } else {
             result.error("loading_error", nativeAd.getErrorMessage());
         }

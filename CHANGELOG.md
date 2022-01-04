@@ -1,3 +1,7 @@
+## 0.1.6
+
+* Downgrade Java compatibility level to 1.7
+
 ## 0.1.5
 
 * Add reference to source code repository

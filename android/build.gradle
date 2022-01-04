@@ -1,5 +1,5 @@
 group 'com.startapp.flutter.sdk'
-version '0.1.5'
+version '0.1.6'
 
 buildscript {
     repositories {
@@ -30,6 +30,11 @@ android {
         minSdkVersion 19
 
         buildConfigField 'String', 'VERSION_NAME', "\"$version\""
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_7
+        targetCompatibility JavaVersion.VERSION_1_7
     }
 }
 
