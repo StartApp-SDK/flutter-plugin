@@ -12,12 +12,56 @@ class StartAppSdk {
 
   final MethodChannel _channel = const MethodChannel('com.startapp.flutter');
 
+  final Map<int, VoidCallback> onAdDisplayedCallbacks = Map();
+  final Map<int, VoidCallback> onAdNotDisplayedCallbacks = Map();
+  final Map<int, VoidCallback> onAdClickedCallbacks = Map();
+  final Map<int, VoidCallback> onAdHiddenCallbacks = Map();
+  final Map<int, VoidCallback> onAdImpressionCallbacks = Map();
+
   /// It's safe to call this constructor several time, it returns singleton instance.
   factory StartAppSdk() {
     return _instance;
   }
 
-  StartAppSdk._();
+  StartAppSdk._() {
+    Map<String, Map<int, VoidCallback>> adEventCallbacks = {
+      'adDisplayed': onAdDisplayedCallbacks,
+      'adNotDisplayed': onAdNotDisplayedCallbacks,
+      'adClicked': onAdClickedCallbacks,
+      'adHidden': onAdHiddenCallbacks,
+      'adImpression': onAdImpressionCallbacks,
+    };
+
+    _channel.setMethodCallHandler((call) {
+      if (call.method == 'onAdEvent') {
+        dynamic args = call.arguments;
+        if (args is Map) {
+          dynamic id = args['id'];
+          dynamic event = args['event'];
+
+          if (id is int && event is String) {
+            var map = adEventCallbacks[event];
+            if (map != null) {
+              var callback = map[id];
+              if (callback != null) {
+                callback();
+              }
+            }
+          }
+        }
+      }
+
+      return Future.value(null);
+    });
+  }
+
+  void _removeCallbacks(int id) {
+    onAdDisplayedCallbacks.remove(id);
+    onAdNotDisplayedCallbacks.remove(id);
+    onAdClickedCallbacks.remove(id);
+    onAdHiddenCallbacks.remove(id);
+    onAdImpressionCallbacks.remove(id);
+  }
 
   /// Returns the version of underlying native platform SDK.
   Future getSdkVersion() {
@@ -34,14 +78,24 @@ class StartAppSdk {
   /// Once loaded the banner must be shown immediately with [StartAppBanner].
   /// Banner will be refreshed automatically.
   Future<StartAppBannerAd> loadBannerAd(
-    StartAppBannerType type, [
+    StartAppBannerType type, {
     StartAppAdPreferences prefs = const StartAppAdPreferences(),
-  ]) {
+    VoidCallback? onAdImpression,
+    VoidCallback? onAdClicked,
+  }) {
     return _channel.invokeMethod('loadBannerAd', prefs._toMap({'type': type.index})).then((value) {
       if (value is Map) {
         dynamic id = value['id'];
 
         if (id is int && id > 0) {
+          if (onAdImpression != null) {
+            onAdImpressionCallbacks[id] = onAdImpression;
+          }
+
+          if (onAdClicked != null) {
+            onAdClickedCallbacks[id] = onAdClicked;
+          }
+
           return StartAppBannerAd._(id, value.cast());
         }
       }
@@ -56,15 +110,35 @@ class StartAppSdk {
   /// Each instance of [StartAppInterstitialAd] can be displayed only once.
   /// You have to load new instance in order to shown an interstitial ad another time.
   /// You must assign [null] to the corresponding field after the ad was shown.
-  Future<StartAppInterstitialAd> loadInterstitialAd([
+  Future<StartAppInterstitialAd> loadInterstitialAd({
     StartAppAdPreferences prefs = const StartAppAdPreferences(),
-  ]) {
+    VoidCallback? onAdDisplayed,
+    VoidCallback? onAdNotDisplayed,
+    VoidCallback? onAdClicked,
+    VoidCallback? onAdHidden,
+  }) {
     return _channel.invokeMethod('loadInterstitialAd', prefs._toMap()).then((value) {
       if (value is Map) {
         dynamic id = value['id'];
 
         if (id is int && id > 0) {
-          return StartAppInterstitialAd._(_channel, id);
+          if (onAdDisplayed != null) {
+            onAdDisplayedCallbacks[id] = onAdDisplayed;
+          }
+
+          if (onAdNotDisplayed != null) {
+            onAdNotDisplayedCallbacks[id] = onAdNotDisplayed;
+          }
+
+          if (onAdClicked != null) {
+            onAdClickedCallbacks[id] = onAdClicked;
+          }
+
+          if (onAdHidden != null) {
+            onAdHiddenCallbacks[id] = onAdHidden;
+          }
+
+          return StartAppInterstitialAd._(id, _channel);
         }
       }
 
@@ -180,12 +254,31 @@ enum StartAppBannerType {
   COVER,
 }
 
-/// Proxy object which holds an underlying native platform view.
-class StartAppBannerAd {
+class _StartAppAd {
   final int _id;
+
+  _StartAppAd(this._id);
+
+  void dispose() {
+    StartAppSdk._instance._removeCallbacks(_id);
+  }
+}
+
+abstract class _StartAppStatefulWidget<Ad extends _StartAppAd> extends StatefulWidget {
+  final Ad _ad;
+
+  _StartAppStatefulWidget(this._ad);
+
+  void dispose() {
+    _ad.dispose();
+  }
+}
+
+/// Proxy object which holds an underlying native platform view.
+class StartAppBannerAd extends _StartAppAd {
   final Map<String, dynamic> _data;
 
-  StartAppBannerAd._(this._id, this._data);
+  StartAppBannerAd._(id, this._data) : super(id);
 
   /// Returns a width of the widget.
   double? get width {
@@ -201,10 +294,8 @@ class StartAppBannerAd {
 }
 
 /// Widget to display [StartAppBannerAd].
-class StartAppBanner extends StatefulWidget {
-  final StartAppBannerAd _ad;
-
-  StartAppBanner(this._ad);
+class StartAppBanner extends _StartAppStatefulWidget<StartAppBannerAd> {
+  StartAppBanner(StartAppBannerAd ad) : super(ad);
 
   @override
   State createState() {
@@ -220,11 +311,10 @@ class StartAppBanner extends StatefulWidget {
 }
 
 /// Proxy object which holds an interstitial ad ready to be shown.
-class StartAppInterstitialAd {
+class StartAppInterstitialAd extends _StartAppAd {
   final MethodChannel _channel;
-  final int _id;
 
-  StartAppInterstitialAd._(this._channel, this._id);
+  StartAppInterstitialAd._(id, this._channel) : super(id);
 
   /// Show an ad.
   Future<bool> show() {
@@ -237,11 +327,10 @@ class StartAppInterstitialAd {
 }
 
 /// Proxy object which holds a native ad ready to be shown.
-class StartAppNativeAd {
-  final int _id;
+class StartAppNativeAd extends _StartAppAd {
   final Map<String, dynamic> _data;
 
-  StartAppNativeAd._(this._id, this._data);
+  StartAppNativeAd._(id, this._data) : super(id);
 
   /// The main line of an ad, which must stands out well
   String? get title {
@@ -292,20 +381,19 @@ class StartAppNativeAd {
 typedef StartAppNativeWidgetBuilder = Widget Function(BuildContext context, StateSetter setState, StartAppNativeAd nativeAd);
 
 /// Parent widget to display [StartAppNativeAd], your main layout will be requested via [StartAppNativeWidgetBuilder].
-class StartAppNative extends StatefulWidget {
-  final StartAppNativeAd _ad;
+class StartAppNative extends _StartAppStatefulWidget<StartAppNativeAd> {
   final StartAppNativeWidgetBuilder _builder;
   final double? width;
   final double? height;
   final bool ignorePointer;
 
   StartAppNative(
-    this._ad,
+    StartAppNativeAd ad,
     this._builder, {
     this.width,
     this.height,
     this.ignorePointer = true,
-  });
+  }) : super(ad);
 
   @override
   State<StatefulWidget> createState() {
@@ -328,7 +416,7 @@ class StartAppNative extends StatefulWidget {
   }
 }
 
-class _StartAppAndroidViewState extends State {
+class _StartAppAndroidViewState extends State<_StartAppStatefulWidget> {
   final String viewType;
   final Map<String, dynamic> creationParams;
   final double? width;
@@ -342,6 +430,12 @@ class _StartAppAndroidViewState extends State {
     this.height,
     this.overlayBuilder,
   });
+
+  @override
+  void dispose() {
+    widget.dispose();
+    super.dispose();
+  }
 
   Widget build(BuildContext context) {
     return SizedBox(

@@ -29,6 +29,7 @@ import com.startapp.sdk.adsbase.Ad;
 import com.startapp.sdk.adsbase.SDKAdPreferences;
 import com.startapp.sdk.adsbase.StartAppAd;
 import com.startapp.sdk.adsbase.StartAppSDK;
+import com.startapp.sdk.adsbase.adlisteners.AdDisplayListener;
 import com.startapp.sdk.adsbase.adlisteners.AdEventListener;
 import com.startapp.sdk.adsbase.model.AdPreferences;
 
@@ -36,6 +37,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
@@ -63,13 +65,16 @@ public class StartAppSdkPlugin implements FlutterPlugin, MethodCallHandler {
     private Handler uiHandler;
 
     @NonNull
-    private final StartAppKeeper<BannerStandard> bannerAdKeeper = new StartAppKeeper<>();
+    private final StartAppSequence sequence = new StartAppSequence();
 
     @NonNull
-    private final StartAppKeeper<StartAppAd> interstitialAdKeeper = new StartAppKeeper<>();
+    private final StartAppKeeper<BannerStandard> bannerAdKeeper = new StartAppKeeper<>(sequence);
 
     @NonNull
-    private final StartAppKeeper<NativeAdDetails> nativeAdKeeper = new StartAppKeeper<>();
+    private final StartAppKeeper<StartAppAd> interstitialAdKeeper = new StartAppKeeper<>(sequence);
+
+    @NonNull
+    private final StartAppKeeper<NativeAdDetails> nativeAdKeeper = new StartAppKeeper<>(sequence);
 
     @NonNull
     public Handler getUiHandler() {
@@ -202,6 +207,16 @@ public class StartAppSdkPlugin implements FlutterPlugin, MethodCallHandler {
         }
     }
 
+    private void notifyAdEvent(int adId, @NonNull String adEvent) {
+        if (channel != null) {
+            Map<String, Object> arguments = new HashMap<>();
+            arguments.put("id", adId);
+            arguments.put("event", adEvent);
+
+            channel.invokeMethod("onAdEvent", arguments);
+        }
+    }
+
     private void loadBannerAd(@NonNull Context context, @Nullable Map<String, Object> arguments, @NonNull final StartAppMethodResultWrapper result) {
         if (DEBUG) {
             Log.v(LOG_TAG, "loadBannerAd");
@@ -217,6 +232,7 @@ public class StartAppSdkPlugin implements FlutterPlugin, MethodCallHandler {
 
         final AtomicReference<BannerStandard> bannerRef = new AtomicReference<>();
         final AtomicReference<Point> sizeRef = new AtomicReference<>();
+        final AtomicInteger adId = new AtomicInteger();
 
         BannerListener bannerListener = new BannerListener() {
             @Override
@@ -238,6 +254,7 @@ public class StartAppSdkPlugin implements FlutterPlugin, MethodCallHandler {
                 }
 
                 int id = bannerAdKeeper.add(banner);
+                adId.set(id);
 
                 final Map<String, Object> data = new HashMap<>();
                 data.put("id", id);
@@ -270,12 +287,12 @@ public class StartAppSdkPlugin implements FlutterPlugin, MethodCallHandler {
 
             @Override
             public void onImpression(View view) {
-                // none
+                notifyAdEvent(adId.get(), "adImpression");
             }
 
             @Override
             public void onClick(View view) {
-                // none
+                notifyAdEvent(adId.get(), "adClicked");
             }
         };
 
@@ -412,23 +429,46 @@ public class StartAppSdkPlugin implements FlutterPlugin, MethodCallHandler {
             return;
         }
 
-        Object id = arguments.get("id");
-        if (!(id instanceof Integer)) {
+        Object idObj = arguments.get("id");
+        if (!(idObj instanceof Integer)) {
             result.error("invalid_id", null, null);
             return;
         }
 
-        StartAppAd interstitialAd = interstitialAdKeeper.get((Integer) id);
+        final int id = (Integer) idObj;
+
+        StartAppAd interstitialAd = interstitialAdKeeper.get(id);
 
         if (interstitialAd == null) {
             result.error("ad_not_found", null, null);
             return;
         }
 
-        boolean shown = interstitialAd.isReady() && interstitialAd.showAd();
-        if (shown) {
-            interstitialAdKeeper.remove((Integer) id);
-        }
+        boolean shown = interstitialAd.showAd(new AdDisplayListener() {
+            @Override
+            public void adDisplayed(Ad ad) {
+                notifyAdEvent(id, "adDisplayed");
+            }
+
+            @Override
+            public void adNotDisplayed(Ad ad) {
+                notifyAdEvent(id, "adNotDisplayed");
+
+                interstitialAdKeeper.remove(id);
+            }
+
+            @Override
+            public void adClicked(Ad ad) {
+                notifyAdEvent(id, "adClicked");
+            }
+
+            @Override
+            public void adHidden(Ad ad) {
+                notifyAdEvent(id, "adHidden");
+
+                interstitialAdKeeper.remove(id);
+            }
+        });
 
         result.success(shown);
     }

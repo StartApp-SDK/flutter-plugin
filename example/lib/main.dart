@@ -44,7 +44,34 @@ class _MyAppState extends State<MyApp> {
             child: Column(
               children: [
                 ElevatedButton(
-                  onPressed: () => startAppSdk.loadInterstitialAd(const StartAppAdPreferences(adTag: 'home_screen')).then((interstitialAd) {
+                  onPressed: () => startAppSdk
+                      .loadInterstitialAd(
+                          prefs: const StartAppAdPreferences(adTag: 'home_screen'),
+                          onAdDisplayed: () {
+                            debugPrint('onAdDisplayed: interstitial');
+                          },
+                          onAdNotDisplayed: () {
+                            debugPrint('onAdNotDisplayed: interstitial');
+
+                            setState(() {
+                              // NOTE interstitial ad can be shown only once
+                              this.interstitialAd?.dispose();
+                              this.interstitialAd = null;
+                            });
+                          },
+                          onAdClicked: () {
+                            debugPrint('onAdClicked: interstitial');
+                          },
+                          onAdHidden: () {
+                            debugPrint('onAdHidden: interstitial');
+
+                            setState(() {
+                              // NOTE interstitial ad can be shown only once
+                              this.interstitialAd?.dispose();
+                              this.interstitialAd = null;
+                            });
+                          })
+                      .then((interstitialAd) {
                     setState(() {
                       this.interstitialAd = interstitialAd;
                     });
@@ -58,17 +85,9 @@ class _MyAppState extends State<MyApp> {
                 ElevatedButton(
                   onPressed: (StartAppInterstitialAd? interstitialAd) {
                     if (interstitialAd != null) {
-                      return () => interstitialAd.show().then((shown) {
-                            if (shown) {
-                              setState(() {
-                                // NOTE interstitial ad can be shown only once
-                                this.interstitialAd = null;
-                              });
-                            }
-
-                            return null;
-                          }).onError((error, stackTrace) {
+                      return () => interstitialAd.show().onError((error, stackTrace) {
                             debugPrint("Error showing Interstitial ad: $error");
+                            return false;
                           });
                     } else {
                       return null;
@@ -79,7 +98,16 @@ class _MyAppState extends State<MyApp> {
                 bannerAd != null
                     ? StartAppBanner(bannerAd!)
                     : ElevatedButton(
-                        onPressed: () => startAppSdk.loadBannerAd(StartAppBannerType.BANNER, const StartAppAdPreferences(adTag: 'primary')).then((bannerAd) {
+                        onPressed: () => startAppSdk.loadBannerAd(
+                          StartAppBannerType.BANNER,
+                          prefs: const StartAppAdPreferences(adTag: 'primary'),
+                          onAdImpression: () {
+                            debugPrint('onAdImpression: banner');
+                          },
+                          onAdClicked: () {
+                            debugPrint('onAdClicked: banner');
+                          },
+                        ).then((bannerAd) {
                           setState(() {
                             this.bannerAd = bannerAd;
                           });
@@ -93,7 +121,7 @@ class _MyAppState extends State<MyApp> {
                 mrecAd != null
                     ? StartAppBanner(mrecAd!)
                     : ElevatedButton(
-                        onPressed: () => startAppSdk.loadBannerAd(StartAppBannerType.MREC, const StartAppAdPreferences(adTag: 'secondary')).then((mrecAd) {
+                  onPressed: () => startAppSdk.loadBannerAd(StartAppBannerType.MREC, prefs: const StartAppAdPreferences(adTag: 'secondary')).then((mrecAd) {
                           setState(() {
                             this.mrecAd = mrecAd;
                           });

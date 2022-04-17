@@ -6,17 +6,22 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 public class StartAppKeeper<T> {
-    private int sequence;
+    @NonNull
+    private final StartAppSequence sequence;
 
     private final SparseArray<T> instances = new SparseArray<>();
+
+    public StartAppKeeper(@NonNull StartAppSequence sequence) {
+        this.sequence = sequence;
+    }
 
     /**
      * @return positive number if an instance was added, otherwise return 0
      */
     public int add(@NonNull T instance) {
-        synchronized (instances) {
-            if (sequence < Integer.MAX_VALUE) {
-                int result = ++sequence;
+        int result = sequence.next();
+        if (result > 0) {
+            synchronized (instances) {
                 instances.put(result, instance);
                 return result;
             }

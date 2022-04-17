@@ -1,3 +1,7 @@
+## 0.2.0
+
+* Implement callbacks for ad events for Banner and Interstitial
+
 ## 0.1.6
 
 * Downgrade Java compatibility level to 1.7

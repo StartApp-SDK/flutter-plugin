@@ -1,5 +1,5 @@
 group 'com.startapp.flutter.sdk'
-version '0.1.6'
+version '0.2.0'
 
 buildscript {
     repositories {
@@ -24,7 +24,7 @@ rootProject.allprojects {
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 31
+    compileSdkVersion 32
 
     defaultConfig {
         minSdkVersion 19
@@ -39,5 +39,5 @@ android {
 }
 
 dependencies {
-    implementation 'com.startapp:inapp-sdk:4.9.1'
+    implementation 'com.startapp:inapp-sdk:[4.9.1,5)'
 }

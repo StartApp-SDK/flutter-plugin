@@ -256,27 +256,71 @@ class _MyAppState extends State<MyApp> {
 
 ### Additional parameters
 
-If you want to customize the ad request being sent to the server, you can pass an instance of
-`StartAppAdPreferences` as last parameter to any of loading method of class `StartAppSdk`.
+If you want to customize the ad request being sent to the server, you should pass an instance of
+`StartAppAdPreferences` as named parameter `prefs` to any of loading method of class `StartAppSdk`.
 
 You can find all available parameters in the constructor of `StartAppAdPreferences`.
 
 **Examples**:
 
 ```dart
-startAppSdk.loadBannerAd(type, const StartAppAdPreferences(
+startAppSdk.loadBannerAd(type, prefs: const StartAppAdPreferences(
   adTag: 'home_screen',
 ));
 ```
 
 ```dart
-startAppSdk.loadInterstitialAd(const StartAppAdPreferences(
+startAppSdk.loadInterstitialAd(prefs: const StartAppAdPreferences(
   adTag: 'game_over',
 ));
 ```
 
 ```dart
-startAppSdk.loadNativeAd(const StartAppAdPreferences(
+startAppSdk.loadNativeAd(prefs: const StartAppAdPreferences(
   adTag: 'scoreboard',
 ));
+```
+
+### Listen ad events
+
+If you want to do something when an ad event happens, you should pass a corresponding callback
+while loading an ad.
+
+**Note**: You have to call `interstitialAd.dispose()` after it has been used to prevent memory leak.
+For banner it will be called automatically.
+
+**Examples**:
+
+```dart
+startAppSdk.loadBannerAd(type,
+  onAdImpression: () {
+    // do something
+  },
+  onAdClicked: () {
+    // do something
+  },
+);
+```
+
+```dart
+startAppSdk.loadInterstitialAd(
+  onAdDisplayed: () {
+    // do something
+  },
+  onAdNotDisplayed: () {
+    // do something
+
+    interstitialAd.dispose();
+    interstitialAd = null;
+  },
+  onAdClicked: () {
+    // do something
+  },
+  onAdHidden: () {
+    // do something
+
+    interstitialAd.dispose();
+    interstitialAd = null;
+  },
+);
 ```
