@@ -646,6 +646,17 @@ public class StartAppSdkPlugin implements FlutterPlugin, MethodCallHandler {
                     }
                 }
             }
+
+            Object minCPM = args.get("minCPM");
+            if (minCPM instanceof Number) {
+                try {
+                    prefs.setMinCpm(((Number) minCPM).doubleValue());
+                } catch (RuntimeException ex) {
+                    if (DEBUG) {
+                        Log.w(LOG_TAG, ex);
+                    }
+                }
+            }
         }
     }
 

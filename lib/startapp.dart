@@ -5,6 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 
 /// Singleton class for accessing API of native platform Start.io (StartApp) SDK.
 class StartAppSdk {
@@ -207,6 +208,9 @@ class StartAppAdPreferences {
   /// Desired height of an ad. Only applicable for [StartAppBannerAd].
   final int? desiredHeight;
 
+  /// Minimal cost per impression for loaded ads.
+  final double? minCPM;
+
   const StartAppAdPreferences({
     this.adTag,
     this.keywords,
@@ -218,6 +222,7 @@ class StartAppAdPreferences {
     this.categoriesExclude,
     this.desiredWidth,
     this.desiredHeight,
+    this.minCPM,
   });
 
   Map<String, dynamic> _toMap([Map<String, dynamic>? map]) {
@@ -236,6 +241,7 @@ class StartAppAdPreferences {
       'categoriesExclude': categoriesExclude,
       'desiredWidth': desiredWidth,
       'desiredHeight': desiredHeight,
+      'minCPM': minCPM,
     });
 
     return map;
@@ -299,14 +305,28 @@ class StartAppBanner extends _StartAppStatefulWidget<StartAppBannerAd> {
 
   @override
   State createState() {
-    return _StartAppAndroidViewState(
-      'com.startapp.flutter.Banner',
-      creationParams: {
-        'adId': _ad._id,
-      },
-      width: _ad.width,
-      height: _ad.height,
-    );
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return _StartAppAndroidViewState(
+          'com.startapp.flutter.Banner',
+          creationParams: {
+            'adId': _ad._id,
+          },
+          width: _ad.width,
+          height: _ad.height,
+        );
+      case TargetPlatform.iOS:
+        return _StartAppiOSViewState(
+          'com.startapp.flutter.Banner',
+          creationParams: {
+            'adId': _ad._id,
+          },
+          width: _ad.width,
+          height: _ad.height,
+        );
+      default:
+        throw UnsupportedError('Unsupported platform view');
+    }
   }
 }
 
@@ -397,33 +417,55 @@ class StartAppNative extends _StartAppStatefulWidget<StartAppNativeAd> {
 
   @override
   State<StatefulWidget> createState() {
-    return _StartAppAndroidViewState(
-      'com.startapp.flutter.Native',
-      creationParams: {
-        'adId': _ad._id,
-        'width': width,
-        'height': height,
-      },
-      width: width,
-      height: height,
-      overlayBuilder: (context, setState) {
-        return IgnorePointer(
-          ignoring: ignorePointer,
-          child: _builder(context, setState, _ad),
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return _StartAppAndroidViewState(
+          'com.startapp.flutter.Native',
+          creationParams: {
+            'adId': _ad._id,
+            'width': width,
+            'height': height,
+          },
+          width: width,
+          height: height,
+          overlayBuilder: (context, setState) {
+            return IgnorePointer(
+              ignoring: ignorePointer,
+              child: _builder(context, setState, _ad),
+            );
+          },
         );
-      },
-    );
+      case TargetPlatform.iOS:
+        return _StartAppiOSViewState(
+          'com.startapp.flutter.Native',
+          creationParams: {
+            'adId': _ad._id,
+            'width': width,
+            'height': height,
+          },
+          width: width,
+          height: height,
+          overlayBuilder: (context, setState) {
+            return IgnorePointer(
+              ignoring: ignorePointer,
+              child: _builder(context, setState, _ad),
+            );
+          },
+        );
+      default:
+        throw UnsupportedError('Unsupported platform view');
+    }
   }
 }
 
-class _StartAppAndroidViewState extends State<_StartAppStatefulWidget> {
+abstract class _StartAppNativeViewState extends State<_StartAppStatefulWidget> {
   final String viewType;
   final Map<String, dynamic> creationParams;
   final double? width;
   final double? height;
   final StatefulWidgetBuilder? overlayBuilder;
 
-  _StartAppAndroidViewState(
+  _StartAppNativeViewState(
     this.viewType, {
     this.creationParams = const {},
     this.width,
@@ -437,36 +479,83 @@ class _StartAppAndroidViewState extends State<_StartAppStatefulWidget> {
     super.dispose();
   }
 
+  Widget buildNativeWidget(BuildContext context);
+
   Widget build(BuildContext context) {
     return SizedBox(
       width: width,
       height: height,
       child: Stack(
         children: [
-          PlatformViewLink(
-            viewType: viewType,
-            surfaceFactory: (BuildContext context, PlatformViewController controller) {
-              return AndroidViewSurface(
-                controller: controller as AndroidViewController,
-                gestureRecognizers: const <Factory<OneSequenceGestureRecognizer>>{},
-                hitTestBehavior: PlatformViewHitTestBehavior.opaque,
-              );
-            },
-            onCreatePlatformView: (PlatformViewCreationParams params) {
-              return PlatformViewsService.initSurfaceAndroidView(
-                id: params.id,
-                viewType: viewType,
-                layoutDirection: TextDirection.ltr,
-                creationParams: creationParams,
-                creationParamsCodec: StandardMessageCodec(),
-              )
-                ..addOnPlatformViewCreatedListener(params.onPlatformViewCreated)
-                ..create();
-            },
-          ),
+          buildNativeWidget(context),
           overlayBuilder != null ? StatefulBuilder(builder: overlayBuilder!) : Container(),
         ],
       ),
+    );
+  }
+}
+
+class _StartAppAndroidViewState extends _StartAppNativeViewState {
+  _StartAppAndroidViewState(
+    String viewType, {
+    Map<String, dynamic> creationParams = const {},
+    double? width,
+    double? height,
+    StatefulWidgetBuilder? overlayBuilder,
+  }) : super(
+          viewType,
+          creationParams: creationParams,
+          width: width,
+          height: height,
+          overlayBuilder: overlayBuilder,
+        );
+
+  Widget buildNativeWidget(BuildContext context) {
+    return PlatformViewLink(
+      viewType: viewType,
+      surfaceFactory: (BuildContext context, PlatformViewController controller) {
+        return AndroidViewSurface(
+          controller: controller as AndroidViewController,
+          gestureRecognizers: const <Factory<OneSequenceGestureRecognizer>>{},
+          hitTestBehavior: PlatformViewHitTestBehavior.opaque,
+        );
+      },
+      onCreatePlatformView: (PlatformViewCreationParams params) {
+        return PlatformViewsService.initSurfaceAndroidView(
+          id: params.id,
+          viewType: viewType,
+          layoutDirection: TextDirection.ltr,
+          creationParams: creationParams,
+          creationParamsCodec: StandardMessageCodec(),
+        )
+          ..addOnPlatformViewCreatedListener(params.onPlatformViewCreated)
+          ..create();
+      },
+    );
+  }
+}
+
+class _StartAppiOSViewState extends _StartAppNativeViewState {
+  _StartAppiOSViewState(
+    String viewType, {
+    Map<String, dynamic> creationParams = const {},
+    double? width,
+    double? height,
+    StatefulWidgetBuilder? overlayBuilder,
+  }) : super(
+          viewType,
+          creationParams: creationParams,
+          width: width,
+          height: height,
+          overlayBuilder: overlayBuilder,
+        );
+
+  Widget buildNativeWidget(BuildContext context) {
+    return UiKitView(
+      viewType: viewType,
+      layoutDirection: TextDirection.ltr,
+      creationParams: creationParams,
+      creationParamsCodec: const StandardMessageCodec(),
     );
   }
 }

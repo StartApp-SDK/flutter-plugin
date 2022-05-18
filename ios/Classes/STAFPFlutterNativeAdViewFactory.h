@@ -14,7 +14,12 @@
  * limitations under the License.
  */
 
-#import <Flutter/Flutter.h>
+#import <Foundation/Foundation.h>
+#import "STAFPFlutterViewFactory.h"
 
-@interface SdkPlugin : NSObject<FlutterPlugin>
+NS_ASSUME_NONNULL_BEGIN
+
+@interface STAFPFlutterNativeAdViewFactory : STAFPFlutterViewFactory
 @end
+
+NS_ASSUME_NONNULL_END

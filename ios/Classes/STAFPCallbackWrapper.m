@@ -14,7 +14,26 @@
  * limitations under the License.
  */
 
-#import <Flutter/Flutter.h>
+#import "STAFPCallbackWrapper.h"
 
-@interface SdkPlugin : NSObject<FlutterPlugin>
+@implementation STAFPCallbackWrapper
+
+- (instancetype)initWithCallBacksQueue:(nullable dispatch_queue_t)callBacksQueue {
+    self = [super init];
+    _callBacksQueue = callBacksQueue;
+    return  self;
+}
+
+- (instancetype)init {
+    return [self initWithCallBacksQueue:nil];
+}
+
+- (void)performCallBackOnCorrectQueue:(dispatch_block_t)callback {
+    if (nil == self.callBacksQueue) {
+        callback();
+    } else {
+        dispatch_async(self.callBacksQueue, callback);
+    }
+}
+
 @end

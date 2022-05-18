@@ -14,7 +14,23 @@
  * limitations under the License.
  */
 
+#import <Foundation/Foundation.h>
 #import <Flutter/Flutter.h>
 
-@interface SdkPlugin : NSObject<FlutterPlugin>
+NS_ASSUME_NONNULL_BEGIN
+
+@interface STAFlutterPlatformView : NSObject<FlutterPlatformView>
+
+- (instancetype)initWithNativeView:(UIView *)nativeView;
+
 @end
+
+@protocol STAFPItemsContainer;
+@interface STAFPFlutterViewFactory : NSObject<FlutterPlatformViewFactory>
+- (instancetype)initWithItemsProvider:(id<STAFPItemsContainer>)itemsProvider;
+
+@property (nonatomic, readonly) id<STAFPItemsContainer> itemsProvider;
+@end
+
+
+NS_ASSUME_NONNULL_END

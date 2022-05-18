@@ -1,3 +1,7 @@
+## 0.3.0
+
+* Add support of iOS
+
 ## 0.2.0
 
 * Implement callbacks for ad events for Banner and Interstitial

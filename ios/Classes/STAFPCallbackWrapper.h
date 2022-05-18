@@ -14,7 +14,22 @@
  * limitations under the License.
  */
 
-#import <Flutter/Flutter.h>
+#import <Foundation/Foundation.h>
+#import <StartApp/StartApp.h>
 
-@interface SdkPlugin : NSObject<FlutterPlugin>
+NS_ASSUME_NONNULL_BEGIN
+
+typedef void(^STAFPCallback)(id object);
+typedef void(^STAFPErrorCallback)(id object, NSError *error);
+
+
+@interface STAFPCallbackWrapper : NSObject
+- (instancetype)initWithCallBacksQueue:(nullable dispatch_queue_t)callBacksQueue;
+
+@property (nonatomic, readonly) dispatch_queue_t callBacksQueue;
+
+- (void)performCallBackOnCorrectQueue:(dispatch_block_t)callback;
+
 @end
+
+NS_ASSUME_NONNULL_END

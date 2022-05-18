@@ -14,7 +14,25 @@
  * limitations under the License.
  */
 
-#import <Flutter/Flutter.h>
+#import <Foundation/Foundation.h>
+#import "STAFPFlutterViewFactory.h"
 
-@interface SdkPlugin : NSObject<FlutterPlugin>
+NS_ASSUME_NONNULL_BEGIN
+
+typedef NS_ENUM(NSUInteger, STASTAFlutterBannerViewType) {
+    STAFlutterBannerViewTypeBanner = 0,
+    STAFlutterBannerViewTypeMRec = 1,
+    STAFlutterBannerViewTypeCover = 2
+};
+
+
+@protocol STAFPItemsContainer;
+@interface STAFPFlutterBannerViewFactory : NSObject<FlutterPlatformViewFactory>
+
+- (instancetype)initWithItemsProvider:(id<STAFPItemsContainer>)itemsProvider;
+
+@property (nonatomic, readonly) id<STAFPItemsContainer> itemsProvider;
+
 @end
+
+NS_ASSUME_NONNULL_END

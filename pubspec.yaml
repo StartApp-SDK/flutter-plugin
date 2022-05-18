@@ -1,6 +1,6 @@
 name: startapp_sdk
 description: Start.io (StartApp) SDK for Flutter uses native platform views to show ads.
-version: 0.2.0
+version: 0.3.0
 homepage: https://github.com/StartApp-SDK/flutter-plugin
 
 environment:
@@ -29,9 +29,8 @@ flutter:
       android:
         package: com.startapp.flutter.sdk
         pluginClass: StartAppSdkPlugin
-      # TODO iOS will be implemented later
-      # ios:
-      #   pluginClass: StartAppSdkPlugin
+      ios:
+        pluginClass: SdkPlugin
 
   # To add assets to your plugin package, add an assets section, like this:
   # assets:

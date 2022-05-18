@@ -13,7 +13,7 @@ A Flutter plugin that uses native platform views to show ads from Start.io netwo
 ## Supported platforms
 
 - Android
-- iOS (coming soon)
+- iOS
 
 ## Installation
 
@@ -35,7 +35,7 @@ flutter pub get
 **Mandatory**:
 
 Add your App ID to your app's `AndroidManifest.xml` file by adding the `<meta-data>` tag shown below.
-You can find your App ID in the Start.io Portal. For `android:value` insert your App ID in quotes,
+You can find your App ID on the Start.io Portal. For `android:value` insert your App ID in quotes,
 as shown below.
 
 ```xml
@@ -47,7 +47,7 @@ as shown below.
 
 **Optional**:
 
-Return Ads is enabled by default. If you want to disable it, add another `<meta-data>` tag
+Return Ads are enabled by default. If you want to disable it, add another `<meta-data>` tag
 into `AndroidManifest.xml` file.
 
 ```xml
@@ -57,7 +57,7 @@ into `AndroidManifest.xml` file.
     android:value="false" />
 ```
 
-Splash Ads is enabled by default. If you want to disable it, add `<provider>` tag into
+Splash Ads are enabled by default. If you want to disable it, add `<provider>` tag into
 `AndroidManifest.xml` file with another `<meta-data>` tag nested in that provider as shown below.
 
 ```xml
@@ -71,6 +71,46 @@ Splash Ads is enabled by default. If you want to disable it, add `<provider>` ta
         android:value="false" />
 </provider>
 ```
+
+### iOS specific setup
+
+**Mandatory**:
+
+Add your App ID to your app's `Info.plist` for key `com.startapp.sdk.APPLICATION_ID`
+You can find your App ID on the Start.io Portal.
+
+```xml
+<!-- TODO replace YOUR_APP_ID with actual value -->
+    <key>com.startapp.sdk.APPLICATION_ID</key>
+    <string>YOUR_APP_ID</string>>
+```
+
+**Optional**:
+
+Return Ads are enabled by default. If you want to disable it, set `NO` for `com.startapp.sdk.RETURN_ADS_ENABLED` in your`Info.plist`.
+
+```xml
+    <key>com.startapp.sdk.RETURN_ADS_ENABLED</key>
+    <false/>
+```
+
+Splash Ads are disabled by default. If you want to enable it, set `YES` for `com.startapp.sdk.SPLASH_ADS_ENABLED` key in your`Info.plist`.
+
+```xml
+    <key>com.startapp.sdk.SPLASH_ADS_ENABLED</key>
+    <true/>
+```
+
+**Note**:
+StartApp SDK does not conatain arm64 slice for iOS simulator. In order your app to be build for iOS simulator on Apple silicon computer the Exluded Architectures build setting for iOS simulator should contain `arm64`. Flutter generates xcconfig file `Generated.xcconfig` with `EXCLUDED_ARCHS[sdk=iphonesimulator*]=i386` and ignores those settings, specified in podspec file. That's why you would need to modify this settings manually.
+
+1. Open the default Xcode workspace in your project by running open ios/Runner.xcworkspace in a terminal window from your Flutter project directory.
+1. Select Runner project in Project navigator
+1. Select Runner Target
+1. Click on Build Settings tab
+1. Find `Exluded Architectures`
+1. Add `arm64` for `Any iOS Simulator SDK`
+![Add arm64 to Excluded Architectures](/ReadmeImages/add_arm64_to_exluded_archs.png)
 
 ## Usage
 

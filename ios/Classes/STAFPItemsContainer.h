@@ -14,7 +14,22 @@
  * limitations under the License.
  */
 
-#import <Flutter/Flutter.h>
+#import <Foundation/Foundation.h>
 
-@interface SdkPlugin : NSObject<FlutterPlugin>
+NS_ASSUME_NONNULL_BEGIN
+
+typedef NSNumber *STASDKPluginItemIdentifier;
+
+@protocol STAFPItemsContainer <NSObject>
+
+- (STASDKPluginItemIdentifier)addItem:(id)item;
+- (void)removeItemWithIdentifier:(STASDKPluginItemIdentifier)identifier;
+- (id)itemWithIdentifier:(STASDKPluginItemIdentifier)identifier;
+
 @end
+
+@interface STAFPItemsContainer : NSObject<STAFPItemsContainer>
+
+@end
+
+NS_ASSUME_NONNULL_END

@@ -14,7 +14,22 @@
  * limitations under the License.
  */
 
-#import <Flutter/Flutter.h>
+#import <Foundation/Foundation.h>
+#import "STAFPCallbackWrapper.h"
 
-@interface SdkPlugin : NSObject<FlutterPlugin>
+NS_ASSUME_NONNULL_BEGIN
+
+@interface STAFPAdCallbackWrapper : STAFPCallbackWrapper<STADelegateProtocol>
+
+@property (nullable, nonatomic, copy) STAFPCallback didLoadAd;
+@property (nullable, nonatomic, copy) STAFPErrorCallback failedLoadAd;
+
+@property (nullable, nonatomic, copy) STAFPCallback didShowAd;
+@property (nullable, nonatomic, copy) STAFPErrorCallback failedShowAd;
+
+@property (nullable, nonatomic, copy) STAFPCallback didCloseAd;
+@property (nullable, nonatomic, copy) STAFPCallback didClickAd;
+
 @end
+
+NS_ASSUME_NONNULL_END
