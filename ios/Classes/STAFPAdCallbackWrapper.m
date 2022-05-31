@@ -47,7 +47,12 @@
 }
 
 - (void)didSendImpression:(STAAbstractAd *)ad {
-    
+    STAFPCallback callback = self.didSendImpression;
+    if (nil != callback) {
+        [self performCallBackOnCorrectQueue:^{
+            callback(ad);
+        }];
+    }
 }
 
 - (void)failedShowAd:(STAAbstractAd *)ad withError:(NSError *)error {
@@ -82,15 +87,30 @@
 }
 
 - (void)didCompleteVideo:(STAAbstractAd *)ad {
-    
+    STAFPCallback callback = self.didCompleteVideo;
+    if (nil != callback) {
+        [self performCallBackOnCorrectQueue:^{
+            callback(ad);
+        }];
+    }
 }
 
 - (void)didSendImpressionForNativeAdDetails:(STANativeAdDetails *)nativeAdDetails {
-    
+    STAFPCallback callback = self.didSendImpressionForNativeAd;
+    if (nil != callback) {
+        [self performCallBackOnCorrectQueue:^{
+            callback(nativeAdDetails);
+        }];
+    }
 }
 
 - (void)didClickNativeAdDetails:(STANativeAdDetails *)nativeAdDetails {
-    
+    STAFPCallback callback = self.didClickNativeAd;
+    if (nil != callback) {
+        [self performCallBackOnCorrectQueue:^{
+            callback(nativeAdDetails);
+        }];
+    }
 }
 
 @end

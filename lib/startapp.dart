@@ -18,6 +18,7 @@ class StartAppSdk {
   final Map<int, VoidCallback> onAdClickedCallbacks = Map();
   final Map<int, VoidCallback> onAdHiddenCallbacks = Map();
   final Map<int, VoidCallback> onAdImpressionCallbacks = Map();
+  final Map<int, VoidCallback> onVideoCompletedCallbacks = Map();
 
   /// It's safe to call this constructor several time, it returns singleton instance.
   factory StartAppSdk() {
@@ -31,6 +32,7 @@ class StartAppSdk {
       'adClicked': onAdClickedCallbacks,
       'adHidden': onAdHiddenCallbacks,
       'adImpression': onAdImpressionCallbacks,
+      'videoCompleted': onVideoCompletedCallbacks,
     };
 
     _channel.setMethodCallHandler((call) {
@@ -62,6 +64,7 @@ class StartAppSdk {
     onAdClickedCallbacks.remove(id);
     onAdHiddenCallbacks.remove(id);
     onAdImpressionCallbacks.remove(id);
+    onVideoCompletedCallbacks.remove(id);
   }
 
   /// Returns the version of underlying native platform SDK.
@@ -112,13 +115,61 @@ class StartAppSdk {
   /// You have to load new instance in order to shown an interstitial ad another time.
   /// You must assign [null] to the corresponding field after the ad was shown.
   Future<StartAppInterstitialAd> loadInterstitialAd({
+    StartAppInterstitialAdMode mode = StartAppInterstitialAdMode.automatic,
     StartAppAdPreferences prefs = const StartAppAdPreferences(),
     VoidCallback? onAdDisplayed,
     VoidCallback? onAdNotDisplayed,
     VoidCallback? onAdClicked,
     VoidCallback? onAdHidden,
+    VoidCallback? onAdImpression,
   }) {
-    return _channel.invokeMethod('loadInterstitialAd', prefs._toMap()).then((value) {
+    return _loadFullscreenAd(
+      'loadInterstitialAd',
+      prefs._toMap({'mode': mode.index}),
+      (id, channel) => StartAppInterstitialAd._(id, channel),
+      onAdDisplayed: onAdDisplayed,
+      onAdNotDisplayed: onAdNotDisplayed,
+      onAdClicked: onAdClicked,
+      onAdHidden: onAdHidden,
+      onAdImpression: onAdImpression,
+    );
+  }
+
+  /// Loads rewarded video ad, does not create an underlying native platform view.
+  Future<StartAppRewardedVideoAd> loadRewardedVideoAd({
+    StartAppAdPreferences prefs = const StartAppAdPreferences(),
+    VoidCallback? onAdDisplayed,
+    VoidCallback? onAdNotDisplayed,
+    VoidCallback? onAdClicked,
+    VoidCallback? onAdHidden,
+    VoidCallback? onAdImpression,
+    VoidCallback? onVideoCompleted,
+  }) {
+    return _loadFullscreenAd(
+      'loadRewardedVideoAd',
+      prefs._toMap(),
+      (id, channel) => StartAppRewardedVideoAd._(id, channel),
+      onAdDisplayed: onAdDisplayed,
+      onAdNotDisplayed: onAdNotDisplayed,
+      onAdClicked: onAdClicked,
+      onAdHidden: onAdHidden,
+      onAdImpression: onAdImpression,
+      onVideoCompleted: onVideoCompleted,
+    );
+  }
+
+  Future<T> _loadFullscreenAd<T extends _StartAppFullScreenAd>(
+    String methodName,
+    Map<String, dynamic> methodArgs,
+    T factory(int id, MethodChannel channel), {
+    VoidCallback? onAdDisplayed,
+    VoidCallback? onAdNotDisplayed,
+    VoidCallback? onAdClicked,
+    VoidCallback? onAdHidden,
+    VoidCallback? onAdImpression,
+    VoidCallback? onVideoCompleted,
+  }) {
+    return _channel.invokeMethod(methodName, methodArgs).then((value) {
       if (value is Map) {
         dynamic id = value['id'];
 
@@ -139,7 +190,15 @@ class StartAppSdk {
             onAdHiddenCallbacks[id] = onAdHidden;
           }
 
-          return StartAppInterstitialAd._(id, _channel);
+          if (onAdImpression != null) {
+            onAdImpressionCallbacks[id] = onAdImpression;
+          }
+
+          if (onVideoCompleted != null) {
+            onVideoCompletedCallbacks[id] = onVideoCompleted;
+          }
+
+          return factory(id, _channel);
         }
       }
 
@@ -157,14 +216,23 @@ class StartAppSdk {
   ///
   /// IMPORTANT: You must not handle touch/click events from widgets of your native ad. Clicks are handled
   /// by underlying view, so make sure your buttons or other widgets doesn't intercept touch/click events.
-  Future<StartAppNativeAd> loadNativeAd([
+  Future<StartAppNativeAd> loadNativeAd({
     StartAppAdPreferences prefs = const StartAppAdPreferences(),
-  ]) {
+    VoidCallback? onAdImpression,
+    VoidCallback? onAdClicked,
+  }) {
     return _channel.invokeMethod('loadNativeAd', prefs._toMap()).then((value) {
       if (value is Map) {
         dynamic id = value['id'];
 
         if (id is int && id > 0) {
+          if (onAdImpression != null) {
+            onAdImpressionCallbacks[id] = onAdImpression;
+          }
+
+          if (onAdClicked != null) {
+            onAdClickedCallbacks[id] = onAdClicked;
+          }
           return StartAppNativeAd._(id, value.cast());
         }
       }
@@ -330,15 +398,39 @@ class StartAppBanner extends _StartAppStatefulWidget<StartAppBannerAd> {
   }
 }
 
-/// Proxy object which holds an interstitial ad ready to be shown.
-class StartAppInterstitialAd extends _StartAppAd {
+enum StartAppInterstitialAdMode {
+  automatic,
+  video,
+}
+
+/// Base class for different types of fullscreen ads. Proxy object which holds a fullscreen ad ready to be shown.
+class _StartAppFullScreenAd extends _StartAppAd {
   final MethodChannel _channel;
 
-  StartAppInterstitialAd._(id, this._channel) : super(id);
+  _StartAppFullScreenAd._(id, this._channel) : super(id);
+}
+
+/// Proxy object which holds an interstitial ad ready to be shown.
+class StartAppInterstitialAd extends _StartAppFullScreenAd {
+  StartAppInterstitialAd._(int id, MethodChannel channel) : super._(id, channel);
 
   /// Show an ad.
   Future<bool> show() {
     return _channel.invokeMethod('showInterstitialAd', {
+      'id': _id,
+    }).then((value) {
+      return value is bool && value;
+    });
+  }
+}
+
+/// Proxy object which holds an interstitial ad ready to be shown.
+class StartAppRewardedVideoAd extends _StartAppFullScreenAd {
+  StartAppRewardedVideoAd._(int id, MethodChannel channel) : super._(id, channel);
+
+  /// Show an ad.
+  Future<bool> show() {
+    return _channel.invokeMethod('showRewardedVideoAd', {
       'id': _id,
     }).then((value) {
       return value is bool && value;
@@ -487,8 +579,8 @@ abstract class _StartAppNativeViewState extends State<_StartAppStatefulWidget> {
       height: height,
       child: Stack(
         children: [
-          buildNativeWidget(context),
           overlayBuilder != null ? StatefulBuilder(builder: overlayBuilder!) : Container(),
+          buildNativeWidget(context),
         ],
       ),
     );

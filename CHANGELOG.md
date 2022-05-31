@@ -1,3 +1,7 @@
+## 0.4.0
+
+* Add support of Rewarded Video
+
 ## 0.3.0
 
 * Add support of iOS

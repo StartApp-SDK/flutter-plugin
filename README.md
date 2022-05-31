@@ -2,12 +2,13 @@
 
 A Flutter plugin that uses native platform views to show ads from Start.io network.
 
-![Demo](https://i.imgur.com/qq47Ayz.gif)
+![Demo](https://i.imgur.com/avTTRQO.gif)
 
 ## Supported formats
 
 - Banner
 - Interstitial
+- Rewarded Video
 - Native
 
 ## Supported platforms
@@ -110,7 +111,7 @@ StartApp SDK does not conatain arm64 slice for iOS simulator. In order your app 
 1. Click on Build Settings tab
 1. Find `Exluded Architectures`
 1. Add `arm64` for `Any iOS Simulator SDK`
-![Add arm64 to Excluded Architectures](/ReadmeImages/add_arm64_to_exluded_archs.png)
+![Add arm64 to Excluded Architectures](https://raw.githubusercontent.com/StartApp-SDK/flutter-plugin/master/ReadmeImages/add_arm64_to_exluded_archs.png)
 
 ## Usage
 
@@ -243,6 +244,85 @@ class _MyAppState extends State<MyApp> {
           }
         },
         child: Text('Show Interstitial'),
+      ),
+    );
+  }
+}
+```
+
+### Rewarded Video
+
+Similar to the Interstitial Ad, each instance of `StartAppRewardedVideoAd` can be displayed only once.
+You have to load new instance in order to shown a rewarded video another time.
+You must assign `null` to the corresponding field after the ad was shown.
+
+```dart
+class _MyAppState extends State<MyApp> {
+  var startAppSdk = StartAppSdk();
+
+  StartAppRewardedVideoAd? rewardedVideoAd;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // TODO make sure to comment out this line before release
+    startAppSdk.setTestAdsEnabled(true);
+
+    loadRewardedVideoAd();
+  }
+
+  void loadRewardedVideoAd() {
+    startAppSdk.loadRewardedVideoAd(
+      onAdNotDisplayed: () {
+        debugPrint('onAdNotDisplayed: rewarded video');
+
+        setState(() {
+          // NOTE rewarded video ad can be shown only once
+          this.rewardedVideoAd?.dispose();
+          this.rewardedVideoAd = null;
+        });
+      },
+      onAdHidden: () {
+        debugPrint('onAdHidden: rewarded video');
+
+        setState(() {
+          // NOTE rewarded video ad can be shown only once
+          this.rewardedVideoAd?.dispose();
+          this.rewardedVideoAd = null;
+        });
+      },
+      onVideoCompleted: () {
+        debugPrint('onVideoCompleted: rewarded video completed, user gain a reward');
+
+        setState(() {
+          // TODO give reward to user
+        });
+      },
+    ).then((rewardedVideoAd) {
+      setState(() {
+        this.rewardedVideoAd = rewardedVideoAd;
+      });
+    }).onError<StartAppException>((ex, stackTrace) {
+      debugPrint("Error loading Rewarded Video ad: ${ex.message}");
+    }).onError((error, stackTrace) {
+      debugPrint("Error loading Rewarded Video ad: $error");
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ElevatedButton(
+        onPressed: () {
+          if (rewardedVideoAd != null) {
+            rewardedVideoAd!.show().onError((error, stackTrace) {
+              debugPrint("Error showing Rewarded Video ad: $error");
+              return false;
+            });
+          }
+        },
+        child: Text('Show Rewarded Video'),
       ),
     );
   }

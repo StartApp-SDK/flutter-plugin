@@ -17,7 +17,9 @@ class _MyAppState extends State<MyApp> {
   StartAppBannerAd? bannerAd;
   StartAppBannerAd? mrecAd;
   StartAppInterstitialAd? interstitialAd;
+  StartAppRewardedVideoAd? rewardedVideoAd;
   StartAppNativeAd? nativeAd;
+  int? reward;
 
   @override
   void initState() {
@@ -34,6 +36,8 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
+    var buttonStyle = ButtonStyle(minimumSize: MaterialStateProperty.all(Size(224, 36)));
+
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
@@ -44,45 +48,48 @@ class _MyAppState extends State<MyApp> {
             child: Column(
               children: [
                 ElevatedButton(
-                  onPressed: () => startAppSdk
-                      .loadInterstitialAd(
-                          prefs: const StartAppAdPreferences(adTag: 'home_screen'),
-                          onAdDisplayed: () {
-                            debugPrint('onAdDisplayed: interstitial');
-                          },
-                          onAdNotDisplayed: () {
-                            debugPrint('onAdNotDisplayed: interstitial');
+                  style: buttonStyle,
+                  onPressed: () {
+                    startAppSdk.loadInterstitialAd(
+                      prefs: const StartAppAdPreferences(adTag: 'home_screen'),
+                      onAdDisplayed: () {
+                        debugPrint('onAdDisplayed: interstitial');
+                      },
+                      onAdNotDisplayed: () {
+                        debugPrint('onAdNotDisplayed: interstitial');
 
-                            setState(() {
-                              // NOTE interstitial ad can be shown only once
-                              this.interstitialAd?.dispose();
-                              this.interstitialAd = null;
-                            });
-                          },
-                          onAdClicked: () {
-                            debugPrint('onAdClicked: interstitial');
-                          },
-                          onAdHidden: () {
-                            debugPrint('onAdHidden: interstitial');
+                        setState(() {
+                          // NOTE interstitial ad can be shown only once
+                          this.interstitialAd?.dispose();
+                          this.interstitialAd = null;
+                        });
+                      },
+                      onAdClicked: () {
+                        debugPrint('onAdClicked: interstitial');
+                      },
+                      onAdHidden: () {
+                        debugPrint('onAdHidden: interstitial');
 
-                            setState(() {
-                              // NOTE interstitial ad can be shown only once
-                              this.interstitialAd?.dispose();
-                              this.interstitialAd = null;
-                            });
-                          })
-                      .then((interstitialAd) {
-                    setState(() {
-                      this.interstitialAd = interstitialAd;
+                        setState(() {
+                          // NOTE interstitial ad can be shown only once
+                          this.interstitialAd?.dispose();
+                          this.interstitialAd = null;
+                        });
+                      },
+                    ).then((interstitialAd) {
+                      setState(() {
+                        this.interstitialAd = interstitialAd;
+                      });
+                    }).onError<StartAppException>((ex, stackTrace) {
+                      debugPrint("Error loading Interstitial ad: ${ex.message}");
+                    }).onError((error, stackTrace) {
+                      debugPrint("Error loading Interstitial ad: $error");
                     });
-                  }).onError<StartAppException>((ex, stackTrace) {
-                    debugPrint("Error loading Interstitial ad: ${ex.message}");
-                  }).onError((error, stackTrace) {
-                    debugPrint("Error loading Interstitial ad: $error");
-                  }),
+                  },
                   child: Text('Load Interstitial'),
                 ),
                 ElevatedButton(
+                  style: buttonStyle,
                   onPressed: (StartAppInterstitialAd? interstitialAd) {
                     if (interstitialAd != null) {
                       return () => interstitialAd.show().onError((error, stackTrace) {
@@ -95,41 +102,112 @@ class _MyAppState extends State<MyApp> {
                   }(interstitialAd),
                   child: Text('Show Interstitial'),
                 ),
+                ElevatedButton(
+                  style: buttonStyle,
+                  onPressed: () {
+                    startAppSdk.loadRewardedVideoAd(
+                      prefs: const StartAppAdPreferences(adTag: 'home_screen_rewarded_video'),
+                      onAdDisplayed: () {
+                        debugPrint('onAdDisplayed: rewarded video');
+                      },
+                      onAdNotDisplayed: () {
+                        debugPrint('onAdNotDisplayed: rewarded video');
+
+                        setState(() {
+                          // NOTE rewarded video ad can be shown only once
+                          this.rewardedVideoAd?.dispose();
+                          this.rewardedVideoAd = null;
+                        });
+                      },
+                      onAdClicked: () {
+                        debugPrint('onAdClicked: rewarded video');
+                      },
+                      onAdHidden: () {
+                        debugPrint('onAdHidden: rewarded video');
+
+                        setState(() {
+                          // NOTE rewarded video ad can be shown only once
+                          this.rewardedVideoAd?.dispose();
+                          this.rewardedVideoAd = null;
+                        });
+                      },
+                      onVideoCompleted: () {
+                        debugPrint('onVideoCompleted: rewarded video completed, user gain a reward');
+
+                        setState(() {
+                          reward = reward != null ? reward! + 1 : 1;
+                        });
+                      },
+                    ).then((rewardedVideoAd) {
+                      setState(() {
+                        this.rewardedVideoAd = rewardedVideoAd;
+                      });
+                    }).onError<StartAppException>((ex, stackTrace) {
+                      debugPrint("Error loading Rewarded Video ad: ${ex.message}");
+                    }).onError((error, stackTrace) {
+                      debugPrint("Error loading Rewarded Video ad: $error");
+                    });
+                  },
+                  child: Text('Load Rewarded Video'),
+                ),
+                ElevatedButton(
+                  style: buttonStyle,
+                  onPressed: (StartAppRewardedVideoAd? rewardedVideoAd) {
+                    if (rewardedVideoAd != null) {
+                      return () => rewardedVideoAd.show().onError((error, stackTrace) {
+                            debugPrint("Error showing Rewarded Video ad: $error");
+                            return false;
+                          });
+                    } else {
+                      return null;
+                    }
+                  }(rewardedVideoAd),
+                  child: Text(reward != null ? 'Show Rewarded Video ($reward)' : 'Show Rewarded Video'),
+                ),
                 bannerAd != null
                     ? StartAppBanner(bannerAd!)
                     : ElevatedButton(
-                        onPressed: () => startAppSdk.loadBannerAd(
-                          StartAppBannerType.BANNER,
-                          prefs: const StartAppAdPreferences(adTag: 'primary'),
-                          onAdImpression: () {
-                            debugPrint('onAdImpression: banner');
-                          },
-                          onAdClicked: () {
-                            debugPrint('onAdClicked: banner');
-                          },
-                        ).then((bannerAd) {
-                          setState(() {
-                            this.bannerAd = bannerAd;
+                        style: buttonStyle,
+                        onPressed: () {
+                          startAppSdk.loadBannerAd(
+                            StartAppBannerType.BANNER,
+                            prefs: const StartAppAdPreferences(adTag: 'primary'),
+                            onAdImpression: () {
+                              debugPrint('onAdImpression: banner');
+                            },
+                            onAdClicked: () {
+                              debugPrint('onAdClicked: banner');
+                            },
+                          ).then((bannerAd) {
+                            setState(() {
+                              this.bannerAd = bannerAd;
+                            });
+                          }).onError<StartAppException>((ex, stackTrace) {
+                            debugPrint("Error loading Banner ad: ${ex.message}");
+                          }).onError((error, stackTrace) {
+                            debugPrint("Error loading Banner ad: $error");
                           });
-                        }).onError<StartAppException>((ex, stackTrace) {
-                          debugPrint("Error loading Banner ad: ${ex.message}");
-                        }).onError((error, stackTrace) {
-                          debugPrint("Error loading Banner ad: $error");
-                        }),
+                        },
                         child: Text('Show Banner'),
                       ),
                 mrecAd != null
                     ? StartAppBanner(mrecAd!)
                     : ElevatedButton(
-                  onPressed: () => startAppSdk.loadBannerAd(StartAppBannerType.MREC, prefs: const StartAppAdPreferences(adTag: 'secondary')).then((mrecAd) {
-                          setState(() {
-                            this.mrecAd = mrecAd;
+                        style: buttonStyle,
+                        onPressed: () {
+                          startAppSdk.loadBannerAd(
+                            StartAppBannerType.MREC,
+                            prefs: const StartAppAdPreferences(adTag: 'secondary'),
+                          ).then((mrecAd) {
+                            setState(() {
+                              this.mrecAd = mrecAd;
+                            });
+                          }).onError<StartAppException>((ex, stackTrace) {
+                            debugPrint("Error loading Mrec ad: ${ex.message}");
+                          }).onError((error, stackTrace) {
+                            debugPrint("Error loading Mrec ad: $error");
                           });
-                        }).onError<StartAppException>((ex, stackTrace) {
-                          debugPrint("Error loading Mrec ad: ${ex.message}");
-                        }).onError((error, stackTrace) {
-                          debugPrint("Error loading Mrec ad: $error");
-                        }),
+                        },
                         child: Text('Show Mrec'),
                       ),
                 nativeAd != null
@@ -173,15 +251,26 @@ class _MyAppState extends State<MyApp> {
                         ),
                       )
                     : ElevatedButton(
-                        onPressed: () => startAppSdk.loadNativeAd(const StartAppAdPreferences(adTag: 'game_over')).then((nativeAd) {
-                          setState(() {
-                            this.nativeAd = nativeAd;
+                        style: buttonStyle,
+                        onPressed: () {
+                          startAppSdk.loadNativeAd(
+                            prefs: const StartAppAdPreferences(adTag: 'game_over'),
+                            onAdImpression: () {
+                              debugPrint('onAdImpression: nativeAd');
+                            },
+                            onAdClicked: () {
+                              debugPrint('onAdClicked: nativeAd');
+                            },
+                          ).then((nativeAd) {
+                            setState(() {
+                              this.nativeAd = nativeAd;
+                            });
+                          }).onError<StartAppException>((ex, stackTrace) {
+                            debugPrint("Error loading Native ad: ${ex.message}");
+                          }).onError((error, stackTrace) {
+                            debugPrint("Error loading Native ad: $error");
                           });
-                        }).onError<StartAppException>((ex, stackTrace) {
-                          debugPrint("Error loading Native ad: ${ex.message}");
-                        }).onError((error, stackTrace) {
-                          debugPrint("Error loading Native ad: $error");
-                        }),
+                        },
                         child: Text('Show Native'),
                       ),
               ],

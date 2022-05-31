@@ -26,11 +26,16 @@ static NSString *const kReturnAdsKey = @"com.startapp.sdk.RETURN_ADS_ENABLED";
 static NSString *const kSplashAdsKey = @"com.startapp.sdk.SPLASH_ADS_ENABLED";
 static NSString *const kApplicationIDKey = @"com.startapp.sdk.APPLICATION_ID";
 
-static NSString *const kFlutterPluginVersion = @"1.0.0";
+static NSString *const kFlutterPluginVersion = @"1.1.0";
+
+typedef NS_ENUM(NSUInteger, STAFlutterInterstitialAdMode) {
+    STAFlutterInterstitialAdModeAutomatic = 0,
+    STAFlutterInterstitialAdModeVideo = 1
+};
 
 @interface SdkPlugin ()
 
-@property (nonatomic) id<STAFPItemsContainer> interstitialAds;
+@property (nonatomic) id<STAFPItemsContainer> fullscreenAds;
 @property (nonatomic) id<STAFPItemsContainer> banners;
 @property (nonatomic) id<STAFPItemsContainer> nativeAds;
 
@@ -74,6 +79,10 @@ static NSString *const kFlutterPluginVersion = @"1.0.0";
         [self loadInterstitialAdWithArguments:call.arguments flutterResult:result];
     } else if ([@"showInterstitialAd" isEqualToString:call.method]) {
         [self showInterstitialAdWithArguments:call.arguments flutterResult:result];
+    } else if ([@"loadRewardedVideoAd" isEqualToString:call.method]) {
+        [self loadRewardedVideoAdWithArguments:call.arguments flutterResult:result];
+    } else if ([@"showRewardedVideoAd" isEqualToString:call.method]) {
+        [self showInterstitialAdWithArguments:call.arguments flutterResult:result];
     } else if ([@"loadBannerAd" isEqualToString:call.method]) {
         [self loadBannerAdWithArguments:call.arguments flutterResult:result];
     } else if ([@"loadNativeAd" isEqualToString:call.method]) {
@@ -92,7 +101,47 @@ static NSString *const kFlutterPluginVersion = @"1.0.0";
     STAStartAppSDK.sharedInstance.preferences = sdkPreferences;
     
     STAStartAppAd *interstitalAd = [STAStartAppAd new];
-    STASDKPluginItemIdentifier interstitialAdIdentifier = [self.interstitialAds addItem:interstitalAd];
+    STASDKPluginItemIdentifier interstitialAdIdentifier = [self.fullscreenAds addItem:interstitalAd];
+    
+    STAFPAdCallbackWrapper *callbackWrapper = [self callbackWrapperForAdWithIdentifier:interstitialAdIdentifier flutterResult:flutterResult];
+    
+    NSNumber *mode = arguments[@"mode"];
+    if ([mode isEqual:@(STAFlutterInterstitialAdModeVideo)]) {
+        [interstitalAd loadVideoAdWithDelegate:callbackWrapper withAdPreferences:adPreferences];
+    } else {
+        [interstitalAd loadAdWithDelegate:callbackWrapper withAdPreferences:adPreferences];
+    }
+}
+
+- (void)loadRewardedVideoAdWithArguments:(NSDictionary *)arguments flutterResult:(FlutterResult)flutterResult {
+    
+    STAAdPreferences *adPreferences = [STAAdPreferences new];
+    STASDKPreferences *sdkPreferences = STAStartAppSDK.sharedInstance.preferences;
+    [self applyArguments:arguments toAdPreferences:&adPreferences sdkPreferences:&sdkPreferences];
+    STAStartAppSDK.sharedInstance.preferences = sdkPreferences;
+    
+    STAStartAppAd *interstitalAd = [STAStartAppAd new];
+    STASDKPluginItemIdentifier interstitialAdIdentifier = [self.fullscreenAds addItem:interstitalAd];
+    
+    STAFPAdCallbackWrapper *callbackWrapper = [self callbackWrapperForAdWithIdentifier:interstitialAdIdentifier flutterResult:flutterResult];
+    
+    dispatch_block_t keepObjectsAliveTillFinishedBlock = ^{
+        (void)callbackWrapper;
+    };
+    __weak typeof(self) weakSelf = self;
+    
+    callbackWrapper.didCompleteVideo = ^(STAAbstractAd * _Nonnull ad) {
+        typeof(self) theSelf = weakSelf;
+
+        [theSelf notifyAdEventWithType:@"videoCompleted" identifier:interstitialAdIdentifier];
+        
+        keepObjectsAliveTillFinishedBlock();
+    };
+    
+    [interstitalAd loadRewardedVideoAdWithDelegate:callbackWrapper withAdPreferences:adPreferences];
+}
+
+- (STAFPAdCallbackWrapper *)callbackWrapperForAdWithIdentifier:(STASDKPluginItemIdentifier)adIdentifier flutterResult:(FlutterResult)flutterResult {
     
     __block STAFPAdCallbackWrapper *callbackWrapper = [[STAFPAdCallbackWrapper alloc] initWithCallBacksQueue:dispatch_get_main_queue()];
     
@@ -102,7 +151,7 @@ static NSString *const kFlutterPluginVersion = @"1.0.0";
     __weak typeof(self) weakSelf = self;
     callbackWrapper.didLoadAd = ^(STAAbstractAd * _Nonnull ad) {
 
-        flutterResult( @{ @"id" : interstitialAdIdentifier});
+        flutterResult( @{ @"id" : adIdentifier});
         
         keepObjectsAliveTillFinishedBlock();
     };
@@ -116,7 +165,7 @@ static NSString *const kFlutterPluginVersion = @"1.0.0";
     callbackWrapper.didShowAd = ^(STAAbstractAd * _Nonnull ad) {
         typeof(self) theSelf = weakSelf;
 
-        [theSelf notifyAdEventWitType:@"adDisplayed" identifier:interstitialAdIdentifier];
+        [theSelf notifyAdEventWithType:@"adDisplayed" identifier:adIdentifier];
         
         keepObjectsAliveTillFinishedBlock();
     };
@@ -124,8 +173,8 @@ static NSString *const kFlutterPluginVersion = @"1.0.0";
     callbackWrapper.failedShowAd = ^(STAAbstractAd * _Nonnull ad, NSError * _Nonnull error) {
         typeof(self) theSelf = weakSelf;
 
-        [theSelf notifyAdEventWitType:@"adNotDisplayed" identifier:interstitialAdIdentifier];
-        [theSelf.interstitialAds removeItemWithIdentifier:interstitialAdIdentifier];
+        [theSelf notifyAdEventWithType:@"adNotDisplayed" identifier:adIdentifier];
+        [theSelf.fullscreenAds removeItemWithIdentifier:adIdentifier];
         
         keepObjectsAliveTillFinishedBlock();
     };
@@ -133,7 +182,7 @@ static NSString *const kFlutterPluginVersion = @"1.0.0";
     callbackWrapper.didClickAd = ^(STAAbstractAd * _Nonnull ad) {
         typeof(self) theSelf = weakSelf;
 
-        [theSelf notifyAdEventWitType:@"adClicked" identifier:interstitialAdIdentifier];
+        [theSelf notifyAdEventWithType:@"adClicked" identifier:adIdentifier];
         
         keepObjectsAliveTillFinishedBlock();
     };
@@ -141,13 +190,21 @@ static NSString *const kFlutterPluginVersion = @"1.0.0";
     callbackWrapper.didCloseAd = ^(STAAbstractAd * _Nonnull ad) {
         typeof(self) theSelf = weakSelf;
 
-        [theSelf notifyAdEventWitType:@"adHidden" identifier:interstitialAdIdentifier];
-        [theSelf.interstitialAds removeItemWithIdentifier:interstitialAdIdentifier];
+        [theSelf notifyAdEventWithType:@"adHidden" identifier:adIdentifier];
+        [theSelf.fullscreenAds removeItemWithIdentifier:adIdentifier];
         
         keepObjectsAliveTillFinishedBlock();
     };
     
-    [interstitalAd loadAdWithDelegate:callbackWrapper withAdPreferences:adPreferences];
+    callbackWrapper.didSendImpression = ^(STAAbstractAd * _Nonnull ad) {
+        typeof(self) theSelf = weakSelf;
+
+        [theSelf notifyAdEventWithType:@"adImpression" identifier:adIdentifier];
+        
+        keepObjectsAliveTillFinishedBlock();
+    };
+    
+    return callbackWrapper;
 }
 
 - (void)loadBannerAdWithArguments:(NSDictionary *)arguments flutterResult:(FlutterResult)flutterResult {
@@ -186,7 +243,7 @@ static NSString *const kFlutterPluginVersion = @"1.0.0";
         keepObjectsAliveTillFinishedBlock();
     };
 
-    callbackWrapper.failedLoad= ^(STABannerView * _Nonnull banner, NSError * _Nonnull error) {
+    callbackWrapper.failedLoad = ^(STABannerView * _Nonnull banner, NSError * _Nonnull error) {
         flutterResult([FlutterError errorWithCode:@"failed_to_receive_ad" message:error.localizedDescription details:nil]);
 
         keepObjectsAliveTillFinishedBlock();
@@ -196,7 +253,7 @@ static NSString *const kFlutterPluginVersion = @"1.0.0";
     callbackWrapper.didClick = ^(STABannerView * _Nonnull banner) {
         typeof(self) theSelf = weakSelf;
 
-        [theSelf notifyAdEventWitType:@"adClicked" identifier:bannerIdentifier];
+        [theSelf notifyAdEventWithType:@"adClicked" identifier:bannerIdentifier];
 
         keepObjectsAliveTillFinishedBlock();
     };
@@ -204,7 +261,7 @@ static NSString *const kFlutterPluginVersion = @"1.0.0";
     callbackWrapper.didSendImpression = ^(STABannerView * _Nonnull banner) {
         typeof(self) theSelf = weakSelf;
 
-        [theSelf notifyAdEventWitType:@"adImpression" identifier:bannerIdentifier];
+        [theSelf notifyAdEventWithType:@"adImpression" identifier:bannerIdentifier];
 
         keepObjectsAliveTillFinishedBlock();
     };
@@ -220,7 +277,7 @@ static NSString *const kFlutterPluginVersion = @"1.0.0";
             return;
         }
         
-    STAStartAppAd  *interstitialAd =  [self.interstitialAds itemWithIdentifier:identifier];
+    STAStartAppAd  *interstitialAd =  [self.fullscreenAds itemWithIdentifier:identifier];
 
         if (interstitialAd == nil) {
             flutterResult([FlutterError errorWithCode:@"ad_not_found" message:nil details:nil]);
@@ -283,10 +340,26 @@ static NSString *const kFlutterPluginVersion = @"1.0.0";
         keepObjectsAliveTillFinishedBlock();
     };
     
+    callbackWrapper.didClickNativeAd = ^(STANativeAdDetails * _Nonnull nativeAdDetails) {
+        typeof(self) theSelf = weakSelf;
+
+        [theSelf notifyAdEventWithType:@"adClicked" identifier:nativeAdIdentifier];
+
+        keepObjectsAliveTillFinishedBlock();
+    };
+    
+    callbackWrapper.didSendImpressionForNativeAd = ^(STANativeAdDetails * _Nonnull nativeAdDetails) {
+        typeof(self) theSelf = weakSelf;
+        
+        [theSelf notifyAdEventWithType:@"adImpression" identifier:nativeAdIdentifier];
+        keepObjectsAliveTillFinishedBlock();
+        ;
+    };
+    
     [nativeAd loadAdWithDelegate:callbackWrapper withNativeAdPreferences:adPreferences];
 }
 
-- (void)notifyAdEventWitType:(NSString *)eventType identifier:(STASDKPluginItemIdentifier)identifier {
+- (void)notifyAdEventWithType:(NSString *)eventType identifier:(STASDKPluginItemIdentifier)identifier {
     NSDictionary *arguments = @{
         @"id": identifier,
         @"event": eventType
@@ -331,11 +404,11 @@ static NSString *const kFlutterPluginVersion = @"1.0.0";
 }
 
 #pragma mark -
-- (id<STAFPItemsContainer>)interstitialAds {
-    if (nil == _interstitialAds) {
-        _interstitialAds = [STAFPItemsContainer new];
+- (id<STAFPItemsContainer>)fullscreenAds {
+    if (nil == _fullscreenAds) {
+        _fullscreenAds = [STAFPItemsContainer new];
     }
-    return _interstitialAds;
+    return _fullscreenAds;
 }
 
 - (id<STAFPItemsContainer>)banners {

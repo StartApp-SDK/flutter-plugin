@@ -30,6 +30,12 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nullable, nonatomic, copy) STAFPCallback didCloseAd;
 @property (nullable, nonatomic, copy) STAFPCallback didClickAd;
 
+@property (nullable, nonatomic, copy) STAFPCallback didClickNativeAd;
+@property (nullable, nonatomic, copy) STAFPCallback didSendImpressionForNativeAd;
+
+@property (nullable, nonatomic, copy) STAFPCallback didSendImpression;
+
+@property (nullable, nonatomic, copy) STAFPCallback didCompleteVideo;
 @end
 
 NS_ASSUME_NONNULL_END

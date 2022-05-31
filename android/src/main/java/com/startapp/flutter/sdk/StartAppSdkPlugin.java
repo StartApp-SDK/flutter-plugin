@@ -31,6 +31,7 @@ import com.startapp.sdk.adsbase.StartAppAd;
 import com.startapp.sdk.adsbase.StartAppSDK;
 import com.startapp.sdk.adsbase.adlisteners.AdDisplayListener;
 import com.startapp.sdk.adsbase.adlisteners.AdEventListener;
+import com.startapp.sdk.adsbase.adlisteners.VideoListener;
 import com.startapp.sdk.adsbase.model.AdPreferences;
 
 import java.util.ArrayList;
@@ -71,7 +72,7 @@ public class StartAppSdkPlugin implements FlutterPlugin, MethodCallHandler {
     private final StartAppKeeper<BannerStandard> bannerAdKeeper = new StartAppKeeper<>(sequence);
 
     @NonNull
-    private final StartAppKeeper<StartAppAd> interstitialAdKeeper = new StartAppKeeper<>(sequence);
+    private final StartAppKeeper<StartAppAd> fullScreenAdKeeper = new StartAppKeeper<>(sequence);
 
     @NonNull
     private final StartAppKeeper<NativeAdDetails> nativeAdKeeper = new StartAppKeeper<>(sequence);
@@ -191,11 +192,19 @@ public class StartAppSdkPlugin implements FlutterPlugin, MethodCallHandler {
                 return METHOD_ASYNC;
 
             case "loadInterstitialAd":
-                loadInterstitialAd(context, (Map) arguments, new StartAppMethodResultWrapper(result));
+                loadFullScreenAd(context, null, (Map) arguments, new StartAppMethodResultWrapper(result));
                 return METHOD_ASYNC;
 
             case "showInterstitialAd":
-                showInterstitialAd(context, (Map) arguments, result);
+                showFullScreenAd(context, false, (Map) arguments, result);
+                return METHOD_ASYNC;
+
+            case "loadRewardedVideoAd":
+                loadFullScreenAd(context, StartAppAd.AdMode.REWARDED_VIDEO, (Map) arguments, new StartAppMethodResultWrapper(result));
+                return METHOD_ASYNC;
+
+            case "showRewardedVideoAd":
+                showFullScreenAd(context, true, (Map) arguments, result);
                 return METHOD_ASYNC;
 
             case "loadNativeAd":
@@ -351,27 +360,29 @@ public class StartAppSdkPlugin implements FlutterPlugin, MethodCallHandler {
         }, 3000);
     }
 
-    private void loadInterstitialAd(@NonNull Context context, @Nullable Map<String, Object> arguments, @NonNull final StartAppMethodResultWrapper result) {
+    private void loadFullScreenAd(@NonNull Context context, @Nullable StartAppAd.AdMode adMode, @Nullable Map<String, Object> arguments, @NonNull final StartAppMethodResultWrapper result) {
         if (DEBUG) {
-            Log.v(LOG_TAG, "loadInterstitialAd");
+            Log.v(LOG_TAG, "loadFullScreenAd");
         }
 
         AdPreferences adPreferences = new AdPreferences();
-
         fillAdPreferences(adPreferences, arguments);
 
+        if (adMode == null) {
+            adMode = getAdMode(arguments);
+        }
+
         final Handler uiHandler = getUiHandler();
+        final StartAppAd fullScreenAd = new StartAppAd(context);
 
-        final StartAppAd interstitialAd = new StartAppAd(context);
-
-        boolean loading = interstitialAd.load(adPreferences, new AdEventListener() {
+        fullScreenAd.loadAd(adMode, adPreferences, new AdEventListener() {
             @Override
             public void onReceiveAd(@NonNull Ad ad) {
                 if (DEBUG) {
-                    Log.v(LOG_TAG, "loadInterstitialAd: onReceiveAd");
+                    Log.v(LOG_TAG, "loadFullScreenAd: onReceiveAd");
                 }
 
-                int id = interstitialAdKeeper.add(interstitialAd);
+                int id = fullScreenAdKeeper.add(fullScreenAd);
 
                 final Map<String, Object> data = new HashMap<>();
                 data.put("id", id);
@@ -387,7 +398,7 @@ public class StartAppSdkPlugin implements FlutterPlugin, MethodCallHandler {
             @Override
             public void onFailedToReceiveAd(@Nullable final Ad ad) {
                 if (DEBUG) {
-                    Log.v(LOG_TAG, "loadInterstitialAd: onFailedToReceiveAd");
+                    Log.v(LOG_TAG, "loadFullScreenAd: onFailedToReceiveAd");
                 }
 
                 uiHandler.post(new Runnable() {
@@ -399,29 +410,22 @@ public class StartAppSdkPlugin implements FlutterPlugin, MethodCallHandler {
             }
         });
 
-        if (DEBUG) {
-            Log.v(LOG_TAG, "loadInterstitialAd: loading: " + loading);
-        }
-
-        if (loading) {
-            uiHandler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    result.error("timeout", null);
-                }
-            }, 3000);
-        } else {
-            result.error("loading_error", interstitialAd.getErrorMessage());
-        }
+        uiHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                result.error("timeout", null);
+            }
+        }, 3000);
     }
 
-    private void showInterstitialAd(
+    private void showFullScreenAd(
             @SuppressWarnings("unused") @NonNull Context context,
+            boolean rewardedVideo,
             @Nullable Map<String, Object> arguments,
             @NonNull Result result
     ) {
         if (DEBUG) {
-            Log.v(LOG_TAG, "showInterstitialAd");
+            Log.v(LOG_TAG, "showFullScreenAd");
         }
 
         if (arguments == null) {
@@ -437,14 +441,23 @@ public class StartAppSdkPlugin implements FlutterPlugin, MethodCallHandler {
 
         final int id = (Integer) idObj;
 
-        StartAppAd interstitialAd = interstitialAdKeeper.get(id);
+        StartAppAd fullScreenAd = fullScreenAdKeeper.get(id);
 
-        if (interstitialAd == null) {
+        if (fullScreenAd == null) {
             result.error("ad_not_found", null, null);
             return;
         }
 
-        boolean shown = interstitialAd.showAd(new AdDisplayListener() {
+        if (rewardedVideo) {
+            fullScreenAd.setVideoListener(new VideoListener() {
+                @Override
+                public void onVideoCompleted() {
+                    notifyAdEvent(id, "videoCompleted");
+                }
+            });
+        }
+
+        boolean shown = fullScreenAd.showAd(new AdDisplayListener() {
             @Override
             public void adDisplayed(Ad ad) {
                 notifyAdEvent(id, "adDisplayed");
@@ -454,7 +467,7 @@ public class StartAppSdkPlugin implements FlutterPlugin, MethodCallHandler {
             public void adNotDisplayed(Ad ad) {
                 notifyAdEvent(id, "adNotDisplayed");
 
-                interstitialAdKeeper.remove(id);
+                fullScreenAdKeeper.remove(id);
             }
 
             @Override
@@ -466,7 +479,7 @@ public class StartAppSdkPlugin implements FlutterPlugin, MethodCallHandler {
             public void adHidden(Ad ad) {
                 notifyAdEvent(id, "adHidden");
 
-                interstitialAdKeeper.remove(id);
+                fullScreenAdKeeper.remove(id);
             }
         });
 
@@ -658,6 +671,22 @@ public class StartAppSdkPlugin implements FlutterPlugin, MethodCallHandler {
                 }
             }
         }
+    }
+
+    @NonNull
+    private StartAppAd.AdMode getAdMode(@Nullable Map<String, Object> args) {
+        if (args != null) {
+            Object modeObj = args.get("mode");
+            if (modeObj instanceof Integer) {
+                int mode = (Integer) modeObj;
+
+                if (mode == 1) {
+                    return StartAppAd.AdMode.VIDEO;
+                }
+            }
+        }
+
+        return StartAppAd.AdMode.AUTOMATIC;
     }
 
     private static float magicFlutterDp(float dp, float density) {

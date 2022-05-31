@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'startapp_sdk'
-  s.version          = '0.3.0'
+  s.version          = '0.4.0'
   s.summary          = 'iOS implementation of startapp_sdk Flutter Plugin'
   s.description      = <<-DESC
 This is iOS plugin for Flutter implementation of StartAppSDK.
