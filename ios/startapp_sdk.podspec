@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'startapp_sdk'
-  s.version          = '0.4.0'
+  s.version          = '0.4.2'
   s.summary          = 'iOS implementation of startapp_sdk Flutter Plugin'
   s.description      = <<-DESC
 This is iOS plugin for Flutter implementation of StartAppSDK.
@@ -16,11 +16,11 @@ This is iOS plugin for Flutter implementation of StartAppSDK.
   s.source_files = 'Classes/**/*'
   s.public_header_files = 'Classes/**/*.h'
   s.dependency 'Flutter'
-  s.dependency "StartAppSDK", "~> 4.7.0"
+  s.dependency "StartAppSDK", "~> 4.10"
+  s.platform                = :ios
+  s.ios.deployment_target   = '9.0'
 
   s.static_framework = true
 
-  # Flutter.framework does not contain i386 slice, StartAppSDK does not contain arm64 slice. StartAppSDK is not modular framework
-  s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'NO', 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => '$(inherited) i386 arm64' }
-  s.user_target_xcconfig = { 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => '$(inherited) i386 arm64' }
+  s.pod_target_xcconfig = { 'GCC_PREPROCESSOR_DEFINITIONS' => '$(inherited) STA_PLUGIN_VERSION=\"${STA_PLUGIN_VERSION}\"', 'STA_PLUGIN_VERSION' => "#{s.version}" }
 end

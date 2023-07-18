@@ -1,5 +1,5 @@
 group 'com.startapp.flutter.sdk'
-version '0.4.0'
+version '0.4.2'
 
 buildscript {
     repositories {
@@ -39,5 +39,5 @@ android {
 }
 
 dependencies {
-    implementation 'com.startapp:inapp-sdk:[4.9.1,5)'
+    implementation 'com.startapp:inapp-sdk:[4.11.0,5)'
 }

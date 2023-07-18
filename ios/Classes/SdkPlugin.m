@@ -26,7 +26,7 @@ static NSString *const kReturnAdsKey = @"com.startapp.sdk.RETURN_ADS_ENABLED";
 static NSString *const kSplashAdsKey = @"com.startapp.sdk.SPLASH_ADS_ENABLED";
 static NSString *const kApplicationIDKey = @"com.startapp.sdk.APPLICATION_ID";
 
-static NSString *const kFlutterPluginVersion = @"1.1.0";
+static NSString *const kFlutterPluginVersion = @STA_PLUGIN_VERSION;
 
 typedef NS_ENUM(NSUInteger, STAFlutterInterstitialAdMode) {
     STAFlutterInterstitialAdModeAutomatic = 0,
@@ -324,7 +324,7 @@ typedef NS_ENUM(NSUInteger, STAFlutterInterstitialAdMode) {
             flutterResultData[@"rating"] = adDetails.rating;
             flutterResultData[@"category"] = adDetails.category;
             flutterResultData[@"callToAction"] = adDetails.callToAction;
-            flutterResultData[@"imageURL"] = adDetails.imageUrl;
+            flutterResultData[@"imageUrl"] = adDetails.imageUrl;
             flutterResultData[@"secondaryImageUrl"] = adDetails.secondaryImageUrl;
 
             flutterResult(flutterResultData);

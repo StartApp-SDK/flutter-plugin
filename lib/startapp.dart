@@ -446,47 +446,55 @@ class StartAppNativeAd extends _StartAppAd {
 
   /// The main line of an ad, which must stands out well
   String? get title {
-    return _data['title'];
+    return _safeValue<String>('title');
   }
 
   /// The secondary text of an ad, which must have less visual accent comparing to the [title].
   String? get description {
-    return _data['description'];
+    return _safeValue<String>('description');
   }
 
   /// Rating of an app or website which is advertised.
   double? get rating {
-    return _data['rating'];
+    return _safeValue<num>('rating')?.toDouble();
   }
 
   /// Number of app installs.
   String? get installs {
-    return _data['installs'];
+    return _safeValue<String>('installs');
+
   }
 
   /// Category of app or website.
   String? get category {
-    return _data['category'];
+    return _safeValue<String>('category');
   }
 
   /// Type of campaign.
   String? get campaign {
-    return _data['campaign'];
+    return _safeValue<String>('campaign');
+
   }
 
   /// Title which must be displayed within the main button of an ad.
   String? get callToAction {
-    return _data['callToAction'];
+    return _safeValue<String>('callToAction');
+
   }
 
   /// URL of the main image of an ad.
   String? get imageUrl {
-    return _data['imageUrl'];
+    return _safeValue<String>('imageUrl');
   }
 
   /// URL of the secondary image of an ad.
   String? get secondaryImageUrl {
-    return _data['secondaryImageUrl'];
+    return _safeValue<String>('secondaryImageUrl');
+  }
+
+  T? _safeValue<T>(key) {
+    dynamic value = _data[key];
+    return value is T ? value : null;
   }
 }
 

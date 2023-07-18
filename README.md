@@ -102,17 +102,6 @@ Splash Ads are disabled by default. If you want to enable it, set `YES` for `com
     <true/>
 ```
 
-**Note**:
-StartApp SDK does not conatain arm64 slice for iOS simulator. In order your app to be build for iOS simulator on Apple silicon computer the Exluded Architectures build setting for iOS simulator should contain `arm64`. Flutter generates xcconfig file `Generated.xcconfig` with `EXCLUDED_ARCHS[sdk=iphonesimulator*]=i386` and ignores those settings, specified in podspec file. That's why you would need to modify this settings manually.
-
-1. Open the default Xcode workspace in your project by running open ios/Runner.xcworkspace in a terminal window from your Flutter project directory.
-1. Select Runner project in Project navigator
-1. Select Runner Target
-1. Click on Build Settings tab
-1. Find `Exluded Architectures`
-1. Add `arm64` for `Any iOS Simulator SDK`
-![Add arm64 to Excluded Architectures](https://raw.githubusercontent.com/StartApp-SDK/flutter-plugin/master/ReadmeImages/add_arm64_to_exluded_archs.png)
-
 ## Usage
 
 ### Plugin initialization

@@ -1,3 +1,11 @@
+## 0.4.2
+
+* Update underlying iOS SDK to version >=4.10.0 <5.0. To recieve latest fixes in iOS SDK
+
+## 0.4.1
+
+* Update underlying iOS SDK to version 4.8.x. arm64 iOS simulator support was added there so manual modification of EXCLUDED_ARCHS for iOS project is not needed anymore.
+
 ## 0.4.0
 
 * Add support of Rewarded Video
