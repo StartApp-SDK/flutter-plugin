@@ -36,12 +36,12 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    var buttonStyle = ButtonStyle(minimumSize: MaterialStateProperty.all(Size(224, 36)));
+    var buttonStyle = ButtonStyle(minimumSize: WidgetStateProperty.all(Size(224, 36)));
 
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
-          title: Text("StartApp SDK $_sdkVersion"),
+          title: Text("Start.io SDK $_sdkVersion"),
         ),
         body: SingleChildScrollView(
           child: Center(
@@ -247,7 +247,7 @@ class _MyAppState extends State<MyApp> {
                               ],
                             );
                           },
-                          height: 160,
+                          height: 180,
                         ),
                       )
                     : ElevatedButton(

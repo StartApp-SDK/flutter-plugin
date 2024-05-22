@@ -1,3 +1,14 @@
+## 1.0.1
+
+* Minor changes in README
+
+## 1.0.0
+
+* Update Flutter minimum version to 3.7.12
+* Update underlying Android SDK to version 5.0.0
+* Update Gradle wrapper to version 8.6
+* Update Android Gradle Plugin to version 8.4
+
 ## 0.4.2
 
 * Update underlying iOS SDK to version >=4.10.0 <5.0. To recieve latest fixes in iOS SDK

@@ -1,11 +1,11 @@
 name: startapp_sdk
 description: Start.io (StartApp) SDK for Flutter uses native platform views to show ads.
-version: 0.4.2
+version: 1.0.1
 homepage: https://github.com/StartApp-SDK/flutter-plugin
 
 environment:
-  sdk: ">=2.12.0 <3.0.0"
-  flutter: ">=1.20.0"
+  sdk: ">=2.12.0 <4.0.0"
+  flutter: ">=3.7.12"
 
 dependencies:
   flutter:

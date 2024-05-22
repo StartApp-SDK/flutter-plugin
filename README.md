@@ -2,7 +2,9 @@
 
 A Flutter plugin that uses native platform views to show ads from Start.io network.
 
-![Demo](https://i.imgur.com/avTTRQO.gif)
+[Android Demo](https://i.imgur.com/mvEHfvs.mp4)
+
+[iOS Demo](https://i.imgur.com/WgjNWsP.mp4)
 
 ## Supported formats
 
@@ -83,7 +85,7 @@ You can find your App ID on the Start.io Portal.
 ```xml
 <!-- TODO replace YOUR_APP_ID with actual value -->
     <key>com.startapp.sdk.APPLICATION_ID</key>
-    <string>YOUR_APP_ID</string>>
+    <string>YOUR_APP_ID</string>
 ```
 
 **Optional**:

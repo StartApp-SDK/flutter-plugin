@@ -41,5 +41,12 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
+	<!-- TODO replace YOUR_APP_ID with actual value -->
+	<key>com.startapp.sdk.APPLICATION_ID</key>
+	<string>YOUR_APP_ID</string>
 </dict>
 </plist>

@@ -1,4 +1,4 @@
-image: cirrusci/flutter:3.0.1
+image: ghcr.io/cirruslabs/flutter:3.22.0
 
 stages:
   - build
@@ -6,6 +6,9 @@ stages:
 build:
   stage: build
   script:
+    - apt-get -qq update && apt-get -qq install openjdk-17-jdk
+    - update-alternatives --set java $(update-alternatives --list java | grep java-17)
+    - update-alternatives --set javac $(update-alternatives --list javac | grep java-17)
     - flutter doctor
     - flutter pub get
     - flutter analyze
@@ -15,3 +18,5 @@ build:
     - master
     - tags
     - merge_requests
+  tags:
+    - generic-ash-intel
